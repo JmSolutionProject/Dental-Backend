@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { MessageRepository } from '../../domain/repositories/message.repository';
+import { MessageRepository } from '@messages/domain/repositories/message.repository';
 
 @Injectable()
 export class InMemoryMessageRepository implements MessageRepository {
-  async findById(): Promise<undefined> {
-    return undefined;
+  findById(): Promise<undefined> {
+    return Promise.resolve(undefined);
   }
 }
