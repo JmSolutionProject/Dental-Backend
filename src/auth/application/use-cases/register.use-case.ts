@@ -6,11 +6,11 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
+import { RegisterCommand } from '@auth/application/commands/register.command';
 import { AuthMapper } from '@auth/application/mappers/auth.mapper';
+import { AuthTokenOutput } from '@auth/application/outputs/auth-token.output';
 import { AUTH_REPOSITORY } from '@auth/domain/repositories/auth.repository';
 import type { AuthRepository } from '@auth/domain/repositories/auth.repository';
-import { RegisterRequestDto } from '@auth/presentation/dtos/request/register.request.dto';
-import { AuthTokenResponseDto } from '@auth/presentation/dtos/response/auth-token.response.dto';
 
 @Injectable()
 export class RegisterUseCase {
@@ -21,7 +21,7 @@ export class RegisterUseCase {
     private readonly authMapper: AuthMapper,
   ) {}
 
-  async execute(payload: RegisterRequestDto): Promise<AuthTokenResponseDto> {
+  async execute(payload: RegisterCommand): Promise<AuthTokenOutput> {
     const email = payload.email.trim().toLowerCase();
     const existingUser = await this.authRepository.findByEmail(email);
 
@@ -51,6 +51,6 @@ export class RegisterUseCase {
       this.authMapper.toJwtPayload(user),
     );
 
-    return this.authMapper.toAuthResponse(user, accessToken);
+    return this.authMapper.toAuthOutput(user, accessToken);
   }
 }

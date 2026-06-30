@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiCreatedResponse,
   ApiOkResponse,
   ApiOperation,
@@ -30,6 +31,7 @@ export class OdontogramController {
   @Get('teeth')
   @ApiOperation({ summary: 'Lista el catalogo base de piezas dentales.' })
   @ApiOkResponse({ type: DentalPieceResponseDto, isArray: true })
+  @ApiBearerAuth()
   listTeeth() {
     return this.listDentalPiecesUseCase.execute();
   }
@@ -37,19 +39,26 @@ export class OdontogramController {
   @Get('surfaces')
   @ApiOperation({ summary: 'Lista las superficies dentales disponibles.' })
   @ApiOkResponse({ type: DentalSurfaceResponseDto, isArray: true })
+  @ApiBearerAuth()
   listSurfaces() {
     return this.listDentalSurfacesUseCase.execute();
   }
 
   @Get('states')
-  @ApiOperation({ summary: 'Lista los estados clinicos disponibles para una pieza dental.' })
+  @ApiOperation({
+    summary: 'Lista los estados clinicos disponibles para una pieza dental.',
+  })
+  @ApiBearerAuth()
   @ApiOkResponse({ type: ToothStateResponseDto, isArray: true })
   listStates() {
     return this.listToothStatesUseCase.execute();
   }
 
   @Post('details')
-  @ApiOperation({ summary: 'Registra un detalle dentro del odontograma del paciente.' })
+  @ApiOperation({
+    summary: 'Registra un detalle dentro del odontograma del paciente.',
+  })
+  @ApiBearerAuth()
   @ApiCreatedResponse({ type: OdontogramDetailResponseDto })
   registerDetail(@Body() payload: RegisterOdontogramDetailRequestDto) {
     return this.registerOdontogramDetailUseCase.execute(payload);

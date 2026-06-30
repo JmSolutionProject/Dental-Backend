@@ -1,11 +1,11 @@
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
+import { LoginCommand } from '@auth/application/commands/login.command';
 import { AuthMapper } from '@auth/application/mappers/auth.mapper';
+import { AuthTokenOutput } from '@auth/application/outputs/auth-token.output';
 import { AUTH_REPOSITORY } from '@auth/domain/repositories/auth.repository';
 import type { AuthRepository } from '@auth/domain/repositories/auth.repository';
-import { LoginRequestDto } from '@auth/presentation/dtos/request/login.request.dto';
-import { AuthTokenResponseDto } from '@auth/presentation/dtos/response/auth-token.response.dto';
 
 @Injectable()
 export class LoginUseCase {
@@ -16,7 +16,7 @@ export class LoginUseCase {
     private readonly authMapper: AuthMapper,
   ) {}
 
-  async execute(payload: LoginRequestDto): Promise<AuthTokenResponseDto> {
+  async execute(payload: LoginCommand): Promise<AuthTokenOutput> {
     const user = await this.authRepository.findByEmail(
       payload.email.trim().toLowerCase(),
     );
@@ -38,6 +38,6 @@ export class LoginUseCase {
       this.authMapper.toJwtPayload(user),
     );
 
-    return this.authMapper.toAuthResponse(user, accessToken);
+    return this.authMapper.toAuthOutput(user, accessToken);
   }
 }

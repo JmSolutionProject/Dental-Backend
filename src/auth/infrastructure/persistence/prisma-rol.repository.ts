@@ -1,12 +1,39 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { RoleEntity } from '@auth/domain/entities/role.entity';
-import { RolRepository } from '@auth/domain/repositories/rol_auth.repository';
+import {
+  CreateRolParams,
+  RolRepository,
+} from '@auth/domain/repositories/rol_auth.repository';
 import { PrismaService } from '@shared/infrastructure/persistence/prisma/prisma.service';
 
 @Injectable()
 export class PrismaRol implements RolRepository {
-  createRolUser(params: Promise<RoleEntity | undefined>) {
-    throw new Error('Method not implemented.');
+  constructor(private readonly prisma: PrismaService) {}
+
+  async createRolUser(params: CreateRolParams): Promise<RoleEntity> {
+    const role = await this.prisma.role.create({
+      data: {
+        nombreRol: params.nombreRol,
+        estado: params.estado ?? true,
+      },
+    });
+
+    return new RoleEntity({
+      id: role.id,
+      nombreRol: role.nombreRol,
+      estado: role.estado,
+    });
+  }
+  getRoles(): Promise<RoleEntity[]> {
+    return this.prisma.role.findMany().then((roles) =>
+      roles.map(
+        (role) =>
+          new RoleEntity({
+            id: role.id,
+            nombreRol: role.nombreRol,
+            estado: role.estado,
+          }),
+      ),
+    );
   }
 }

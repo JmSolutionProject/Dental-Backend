@@ -51,6 +51,24 @@ This base keeps the project ready to grow without mixing HTTP, business rules, a
 $ pnpm install
 ```
 
+## Database configuration
+
+The project uses Prisma with PostgreSQL. To run it against PostgreSQL 18, use these variables:
+
+```env
+DATABASE_URL="postgresql://clinica:clinica123@localhost:5432/dentaldb"
+DIRECT_URL="postgresql://clinica:clinica123@localhost:5432/dentaldb"
+```
+
+If your PostgreSQL instance is not running on `localhost:5432`, only change the host and port in the connection string.
+
+After creating the database and user, run:
+
+```bash
+pnpm prisma:generate
+pnpm prisma:validate
+```
+
 ## Compile and run the project
 
 ```bash
