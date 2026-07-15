@@ -5,6 +5,7 @@ import { GetProfileUseCase } from '@auth/application/use-cases/get-profile.use-c
 import { LoginUseCase } from '@auth/application/use-cases/login.use-case';
 import { RegisterUseCase } from '@auth/application/use-cases/register.use-case';
 import { RolCreateUseCase } from '@auth/application/use-cases/rol/rol-create.use-case';
+import { RolListUseCase } from '@auth/application/use-cases/rol/rol-list.use-case';
 import { AUTH_REPOSITORY } from '@auth/domain/repositories/auth.repository';
 import { ROL_REPOSITORY } from '@auth/domain/repositories/rol_auth.repository';
 import { JwtAuthGuard } from '@auth/infrastructure/guards/jwt-auth.guard';
@@ -37,6 +38,7 @@ const jwtExpiresIn = Number(process.env.JWT_EXPIRES_IN ?? 86400);
     LoginUseCase,
     GetProfileUseCase,
     RolCreateUseCase,
+    RolListUseCase,
     JwtAuthGuard,
     {
       provide: AUTH_REPOSITORY,

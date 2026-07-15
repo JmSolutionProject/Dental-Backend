@@ -10,6 +10,19 @@ loadEnv();
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
 
+  const allowedOrigins = process.env.CORS_ORIGIN?.split(',') ?? [
+    'http://localhost:4200',
+  ];
+
+  app.enableCors({
+    origin: allowedOrigins,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  });
+
+  app.setGlobalPrefix('api');
+
   app.enableShutdownHooks();
 
   app.useGlobalPipes(
@@ -24,6 +37,7 @@ async function bootstrap(): Promise<void> {
     .setTitle('Dental Clinic API')
     .setDescription('Documentation for the dental clinic backend')
     .setVersion('1.0')
+    .addServer('/api')
     .addBearerAuth()
     .build();
 

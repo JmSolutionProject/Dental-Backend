@@ -4,7 +4,7 @@ import { ListDentalSurfacesUseCase } from './application/use-cases/list-dental-s
 import { ListToothStatesUseCase } from './application/use-cases/list-tooth-states.use-case';
 import { RegisterOdontogramDetailUseCase } from './application/use-cases/register-odontogram-detail.use-case';
 import { ODONTOGRAM_REPOSITORY } from './domain/repositories/odontogram.repository';
-import { InMemoryOdontogramRepository } from './infrastructure/persistence/in-memory-odontogram.repository';
+import { PrismaOdontogramRepository } from './infrastructure/persistence/prisma-odontogram.repository';
 import { OdontogramController } from './presentation/controllers/odontogram.controller';
 
 @Module({
@@ -16,7 +16,7 @@ import { OdontogramController } from './presentation/controllers/odontogram.cont
     RegisterOdontogramDetailUseCase,
     {
       provide: ODONTOGRAM_REPOSITORY,
-      useClass: InMemoryOdontogramRepository,
+      useClass: PrismaOdontogramRepository,
     },
   ],
 })

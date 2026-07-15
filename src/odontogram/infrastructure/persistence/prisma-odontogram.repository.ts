@@ -31,7 +31,7 @@ const TOOTH_STATES: ToothState[] = [
 ];
 
 @Injectable()
-export class InMemoryOdontogramRepository implements OdontogramRepository {
+export class PrismaOdontogramRepository implements OdontogramRepository {
   private readonly dentalPieces = this.buildDentalPieces();
   private readonly dentalSurfaces = DENTAL_SURFACES;
   private readonly toothStates = TOOTH_STATES;
@@ -113,7 +113,10 @@ export class InMemoryOdontogramRepository implements OdontogramRepository {
   }
 
   private buildDentalPieces(): DentalPiece[] {
-    return [...this.buildSeries([1, 2, 3, 4], 8, 'permanente'), ...this.buildSeries([5, 6, 7, 8], 5, 'temporal')];
+    return [
+      ...this.buildSeries([1, 2, 3, 4], 8, 'permanente'),
+      ...this.buildSeries([5, 6, 7, 8], 5, 'temporal'),
+    ];
   }
 
   private buildSeries(

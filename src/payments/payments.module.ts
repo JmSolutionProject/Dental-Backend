@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { CreatePaymentUseCase } from './application/use-cases/create-payment.use-case';
 import { PAYMENTS_REPOSITORY } from './domain/repositories/payments.repository';
-import { InMemoryPaymentsRepository } from './infrastructure/persistence/in-memory-payments.repository';
+import { PrismaPaymentsRepository } from './infrastructure/persistence/prisma-payments.repository';
 import { PaymentsController } from './presentation/controllers/payments.controller';
 
 @Module({
@@ -10,7 +10,7 @@ import { PaymentsController } from './presentation/controllers/payments.controll
     CreatePaymentUseCase,
     {
       provide: PAYMENTS_REPOSITORY,
-      useClass: InMemoryPaymentsRepository,
+      useClass: PrismaPaymentsRepository,
     },
   ],
 })

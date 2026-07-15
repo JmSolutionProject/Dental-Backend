@@ -8,4 +8,10 @@ export class CreateMessageUseCase {
     @Inject(MESSAGE_REPOSITORY)
     private readonly messageRepository: MessageRepository,
   ) {}
+
+  execute(payload: unknown): Promise<unknown> {
+    void payload;
+
+    return this.messageRepository.findById(0);
+  }
 }

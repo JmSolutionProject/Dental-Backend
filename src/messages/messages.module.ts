@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { CreateMessageUseCase } from './application/use-cases/create-message.use-case';
 import { MESSAGE_REPOSITORY } from './domain/repositories/message.repository';
-import { InMemoryMessageRepository } from './infrastructure/persistence/in-memory-message.repository';
+import { PrismaMessageRepository } from './infrastructure/persistence/prisma-message.repository';
 import { MessagesController } from './presentation/controllers/messages.controller';
 
 @Module({
@@ -10,7 +10,7 @@ import { MessagesController } from './presentation/controllers/messages.controll
     CreateMessageUseCase,
     {
       provide: MESSAGE_REPOSITORY,
-      useClass: InMemoryMessageRepository,
+      useClass: PrismaMessageRepository,
     },
   ],
 })
