@@ -1,4 +1,13 @@
-import { Body, Controller, Get, NotFoundException, Param, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -7,6 +16,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
+import { JwtAuthGuard } from '@auth/infrastructure/guards/jwt-auth.guard';
 import { PrismaService } from '@shared/infrastructure/persistence/prisma/prisma.service';
 import { CreatePatientUseCase } from '../../application/use-cases/create-patient.use-case';
 import { CreatePatientRequestDto } from '../dtos/request/create-patient.request.dto';
@@ -30,6 +40,7 @@ type PatientResponse = {
 };
 
 @ApiTags('patients')
+@UseGuards(JwtAuthGuard)
 @Controller('patients')
 export class PatientsController {
   constructor(
@@ -42,18 +53,25 @@ export class PatientsController {
   @ApiBearerAuth()
   @ApiOkResponse()
   async list(@Query() query: ListPatientsRequestDto) {
-    const page = Math.max(Number(query.page ?? 1), 1);
-    const limit = Math.min(Math.max(Number(query.limit ?? 10), 1), 100);
+    const requestedPage = Number(query.page ?? 1);
+    const requestedLimit = Number(query.limit ?? 10);
+    const page = Number.isFinite(requestedPage)
+      ? Math.max(requestedPage, 1)
+      : 1;
+    const limit = Number.isFinite(requestedLimit)
+      ? Math.min(Math.max(requestedLimit, 1), 100)
+      : 10;
     const search = query.search?.trim();
     const sortBy = query.sortBy ?? 'id';
     const sortDir = query.sortDir ?? 'asc';
-    const sortFields: Record<string, Prisma.PacienteOrderByWithRelationInput> = {
-      firstName: { nombres: sortDir },
-      lastName: { apellidos: sortDir },
-      birthDate: { fechaNacimiento: sortDir },
-      status: { estado: sortDir },
-      id: { id: sortDir },
-    };
+    const sortFields: Record<string, Prisma.PacienteOrderByWithRelationInput> =
+      {
+        firstName: { nombres: sortDir },
+        lastName: { apellidos: sortDir },
+        birthDate: { fechaNacimiento: sortDir },
+        status: { estado: sortDir },
+        id: { id: sortDir },
+      };
     const where: Prisma.PacienteWhereInput = search
       ? {
           OR: [

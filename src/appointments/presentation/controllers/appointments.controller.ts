@@ -1,4 +1,13 @@
-import { Body, Controller, Get, NotFoundException, Param, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -7,6 +16,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
+import { JwtAuthGuard } from '@auth/infrastructure/guards/jwt-auth.guard';
 import { PrismaService } from '@shared/infrastructure/persistence/prisma/prisma.service';
 import { CreateAppointmentUseCase } from '../../application/use-cases/create-appointment.use-case';
 import { AppointmentAvailabilityRequestDto } from '../dtos/request/appointment-availability.request.dto';
@@ -33,6 +43,7 @@ type AppointmentResponse = {
 };
 
 @ApiTags('appointments')
+@UseGuards(JwtAuthGuard)
 @Controller('appointments')
 export class AppointmentsController {
   constructor(
@@ -135,9 +146,11 @@ export class AppointmentsController {
       scheduledAt: appointment.fechaHoraInicio.toISOString(),
       reason: appointment.motivoPrincipal ?? '',
       status: this.toFrontendStatus(appointment.estadoCita.nombreEstado),
-      cancelReason: this.toFrontendStatus(appointment.estadoCita.nombreEstado) === 'cancelled'
-        ? appointment.observaciones
-        : null,
+      cancelReason:
+        this.toFrontendStatus(appointment.estadoCita.nombreEstado) ===
+        'cancelled'
+          ? appointment.observaciones
+          : null,
     };
   }
 

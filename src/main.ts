@@ -37,7 +37,6 @@ async function bootstrap(): Promise<void> {
     .setTitle('Dental Clinic API')
     .setDescription('Documentation for the dental clinic backend')
     .setVersion('1.0')
-    .addServer('/api')
     .addBearerAuth()
     .build();
 
