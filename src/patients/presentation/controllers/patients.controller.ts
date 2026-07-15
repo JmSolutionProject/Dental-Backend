@@ -1,10 +1,12 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   NotFoundException,
   Param,
   Post,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -21,6 +23,7 @@ import { PrismaService } from '@shared/infrastructure/persistence/prisma/prisma.
 import { CreatePatientUseCase } from '../../application/use-cases/create-patient.use-case';
 import { CreatePatientRequestDto } from '../dtos/request/create-patient.request.dto';
 import { ListPatientsRequestDto } from '../dtos/request/list-patients.request.dto';
+import { UpdatePatientRequestDto } from '../dtos/request/update-patient.request.dto';
 
 type PatientResponse = {
   id: string;
@@ -122,6 +125,58 @@ export class PatientsController {
   @ApiCreatedResponse()
   create(@Body() payload: CreatePatientRequestDto) {
     return this.createPatientUseCase.execute(payload);
+  }
+
+  @Put(':id')
+  @ApiOperation({ summary: 'Actualizar datos del paciente' })
+  @ApiBearerAuth()
+  @ApiOkResponse()
+  async update(
+    @Param('id') id: string,
+    @Body() payload: UpdatePatientRequestDto,
+  ): Promise<PatientResponse> {
+    await this.ensurePatientExists(id);
+
+    const patient = await this.prisma.paciente.update({
+      where: { id: Number(id) },
+      data: {
+        nombres: payload.nombres,
+        apellidos: payload.apellidos,
+        fechaNacimiento: payload.fechaNacimiento
+          ? new Date(payload.fechaNacimiento)
+          : undefined,
+        telefonoWhatsapp: payload.telefonoWhatsapp,
+        alergiasCriticas: payload.alergiasCriticas,
+      },
+    });
+
+    return this.toPatientResponse(patient);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Eliminar paciente' })
+  @ApiBearerAuth()
+  @ApiOkResponse()
+  async remove(@Param('id') id: string): Promise<PatientResponse> {
+    await this.ensurePatientExists(id);
+
+    const patient = await this.prisma.paciente.update({
+      where: { id: Number(id) },
+      data: { estado: false },
+    });
+
+    return this.toPatientResponse(patient);
+  }
+
+  private async ensurePatientExists(id: string): Promise<void> {
+    const patient = await this.prisma.paciente.findUnique({
+      where: { id: Number(id) },
+      select: { id: true },
+    });
+
+    if (!patient) {
+      throw new NotFoundException('Paciente no encontrado.');
+    }
   }
 
   private toPatientResponse(patient: {

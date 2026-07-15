@@ -1,10 +1,12 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   NotFoundException,
   Param,
   Post,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -21,6 +23,7 @@ import { PrismaService } from '@shared/infrastructure/persistence/prisma/prisma.
 import { CreateAppointmentUseCase } from '../../application/use-cases/create-appointment.use-case';
 import { AppointmentAvailabilityRequestDto } from '../dtos/request/appointment-availability.request.dto';
 import { CreateAppointmentRequestDto } from '../dtos/request/create-appointment.request.dto';
+import { UpdateAppointmentRequestDto } from '../dtos/request/update-appointment.request.dto';
 
 type AppointmentWithRelations = Prisma.CitaGetPayload<{
   include: {
@@ -90,19 +93,29 @@ export class AppointmentsController {
   @ApiOperation({ summary: 'Listar citas' })
   @ApiBearerAuth()
   @ApiOkResponse()
-  async list(): Promise<AppointmentResponse[]> {
-    const appointments = await this.prisma.cita.findMany({
-      orderBy: { fechaHoraInicio: 'asc' },
-      include: {
-        paciente: true,
-        medico: true,
-        estadoCita: true,
-      },
-    });
+  async list(@Query() query: Record<string, string | undefined>) {
+    const page = this.toPositiveNumber(query.page, 1);
+    const limit = Math.min(this.toPositiveNumber(query.limit, 10), 100);
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.cita.findMany({
+        orderBy: { fechaHoraInicio: 'asc' },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          paciente: true,
+          medico: true,
+          estadoCita: true,
+        },
+      }),
+      this.prisma.cita.count(),
+    ]);
 
-    return appointments.map((appointment) =>
-      this.toAppointmentResponse(appointment),
-    );
+    return {
+      data: data.map((appointment) => this.toAppointmentResponse(appointment)),
+      total,
+      page,
+      limit,
+    };
   }
 
   @Get(':id')
@@ -132,6 +145,90 @@ export class AppointmentsController {
   @ApiCreatedResponse()
   create(@Body() payload: CreateAppointmentRequestDto) {
     return this.createAppointmentUseCase.execute(payload);
+  }
+
+  @Put(':id')
+  @ApiOperation({ summary: 'Actualizar cita' })
+  @ApiBearerAuth()
+  @ApiOkResponse()
+  async update(
+    @Param('id') id: string,
+    @Body() payload: UpdateAppointmentRequestDto,
+  ): Promise<AppointmentResponse> {
+    await this.ensureAppointmentExists(id);
+
+    const appointment = await this.prisma.cita.update({
+      where: { id: Number(id) },
+      data: {
+        pacienteId: payload.pacienteId,
+        medicoId: payload.medicoId,
+        estadoCitaId: payload.estadoCitaId,
+        fechaHoraInicio: payload.fechaHoraInicio
+          ? new Date(payload.fechaHoraInicio)
+          : undefined,
+        fechaHoraFin: payload.fechaHoraFin
+          ? new Date(payload.fechaHoraFin)
+          : undefined,
+        motivoPrincipal: payload.motivoPrincipal,
+        observaciones: payload.observaciones,
+      },
+      include: {
+        paciente: true,
+        medico: true,
+        estadoCita: true,
+      },
+    });
+
+    return this.toAppointmentResponse(appointment);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Cancelar cita' })
+  @ApiBearerAuth()
+  @ApiOkResponse()
+  async remove(@Param('id') id: string): Promise<AppointmentResponse> {
+    await this.ensureAppointmentExists(id);
+    const cancelledStatus = await this.resolveAppointmentStatus('cancelled');
+    const appointment = await this.prisma.cita.update({
+      where: { id: Number(id) },
+      data: { estadoCitaId: cancelledStatus.id },
+      include: {
+        paciente: true,
+        medico: true,
+        estadoCita: true,
+      },
+    });
+
+    return this.toAppointmentResponse(appointment);
+  }
+
+  private async ensureAppointmentExists(id: string): Promise<void> {
+    const appointment = await this.prisma.cita.findUnique({
+      where: { id: Number(id) },
+      select: { id: true },
+    });
+
+    if (!appointment) {
+      throw new NotFoundException('Cita no encontrada.');
+    }
+  }
+
+  private async resolveAppointmentStatus(nombreEstado: string) {
+    const existing = await this.prisma.estadoCita.findFirst({
+      where: { nombreEstado: { equals: nombreEstado, mode: 'insensitive' } },
+    });
+
+    if (existing) {
+      return existing;
+    }
+
+    return this.prisma.estadoCita.create({ data: { nombreEstado } });
+  }
+
+  private toPositiveNumber(value: string | undefined, fallback: number): number {
+    const number = Number(value ?? fallback);
+
+    return Number.isFinite(number) ? Math.max(number, 1) : fallback;
   }
 
   private toAppointmentResponse(
