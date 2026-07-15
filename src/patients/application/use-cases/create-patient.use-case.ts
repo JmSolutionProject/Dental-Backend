@@ -8,4 +8,10 @@ export class CreatePatientUseCase {
     @Inject(PATIENT_REPOSITORY)
     private readonly patientRepository: PatientRepository,
   ) {}
+
+  execute(payload: unknown): Promise<unknown> {
+    void payload;
+
+    return this.patientRepository.count().then((count) => ({ count }));
+  }
 }

@@ -1,3 +1,5 @@
 export const CATALOG_REPOSITORY = Symbol('CATALOG_REPOSITORY');
 
-export interface CatalogRepository {}
+export interface CatalogRepository {
+  count(): Promise<number>;
+}

@@ -8,4 +8,10 @@ export class CreateAppointmentUseCase {
     @Inject(APPOINTMENT_REPOSITORY)
     private readonly appointmentRepository: AppointmentRepository,
   ) {}
+
+  execute(payload: unknown): Promise<unknown> {
+    void payload;
+
+    return this.appointmentRepository.count().then((count) => ({ count }));
+  }
 }

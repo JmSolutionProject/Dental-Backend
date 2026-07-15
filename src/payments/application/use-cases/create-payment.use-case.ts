@@ -8,4 +8,10 @@ export class CreatePaymentUseCase {
     @Inject(PAYMENTS_REPOSITORY)
     private readonly paymentsRepository: PaymentsRepository,
   ) {}
+
+  execute(payload: unknown): Promise<unknown> {
+    void payload;
+
+    return this.paymentsRepository.count().then((count) => ({ count }));
+  }
 }

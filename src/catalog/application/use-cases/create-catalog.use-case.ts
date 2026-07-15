@@ -8,4 +8,10 @@ export class CreateCatalogUseCase {
     @Inject(CATALOG_REPOSITORY)
     private readonly catalogRepository: CatalogRepository,
   ) {}
+
+  execute(payload: unknown): Promise<unknown> {
+    void payload;
+
+    return this.catalogRepository.count().then((count) => ({ count }));
+  }
 }

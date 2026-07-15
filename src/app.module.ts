@@ -7,6 +7,7 @@ import { PatientsModule } from './patients/patients.module';
 import { AppointmentsModule } from './appointments/appointments.module';
 import { MessagesModule } from './messages/messages.module';
 import { PaymentsModule } from './payments/payments.module';
+import { OdontogramModule } from './odontogram/odontogram.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { PaymentsModule } from './payments/payments.module';
     CatalogModule,
     PaymentsModule,
     MessagesModule,
+    OdontogramModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,7 +1,208 @@
-import { Controller } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  NotFoundException,
+  Param,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
+import { Prisma } from '@prisma/client';
+import { JwtAuthGuard } from '@auth/infrastructure/guards/jwt-auth.guard';
+import { PrismaService } from '@shared/infrastructure/persistence/prisma/prisma.service';
 import { CreatePatientUseCase } from '../../application/use-cases/create-patient.use-case';
+import { CreatePatientRequestDto } from '../dtos/request/create-patient.request.dto';
+import { ListPatientsRequestDto } from '../dtos/request/list-patients.request.dto';
+import { UpdatePatientRequestDto } from '../dtos/request/update-patient.request.dto';
 
+type PatientResponse = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  documentNumber: string;
+  phone: string;
+  email: string;
+  birthDate: string | null;
+  status: 'active' | 'inactive';
+  medicalHistory: {
+    allergies: string[];
+    conditions: string[];
+    medications: string[];
+  };
+  notes: string;
+};
+
+@ApiTags('patients')
+@UseGuards(JwtAuthGuard)
 @Controller('patients')
 export class PatientsController {
-  constructor(private readonly createPatientUseCase: CreatePatientUseCase) {}
+  constructor(
+    private readonly createPatientUseCase: CreatePatientUseCase,
+    private readonly prisma: PrismaService,
+  ) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Listar pacientes paginados' })
+  @ApiBearerAuth()
+  @ApiOkResponse()
+  async list(@Query() query: ListPatientsRequestDto) {
+    const requestedPage = Number(query.page ?? 1);
+    const requestedLimit = Number(query.limit ?? 10);
+    const page = Number.isFinite(requestedPage)
+      ? Math.max(requestedPage, 1)
+      : 1;
+    const limit = Number.isFinite(requestedLimit)
+      ? Math.min(Math.max(requestedLimit, 1), 100)
+      : 10;
+    const search = query.search?.trim();
+    const sortBy = query.sortBy ?? 'id';
+    const sortDir = query.sortDir ?? 'asc';
+    const sortFields: Record<string, Prisma.PacienteOrderByWithRelationInput> =
+      {
+        firstName: { nombres: sortDir },
+        lastName: { apellidos: sortDir },
+        birthDate: { fechaNacimiento: sortDir },
+        status: { estado: sortDir },
+        id: { id: sortDir },
+      };
+    const where: Prisma.PacienteWhereInput = search
+      ? {
+          OR: [
+            { nombres: { contains: search, mode: 'insensitive' } },
+            { apellidos: { contains: search, mode: 'insensitive' } },
+            { telefonoWhatsapp: { contains: search, mode: 'insensitive' } },
+          ],
+        }
+      : {};
+
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.paciente.findMany({
+        where,
+        orderBy: sortFields[sortBy] ?? sortFields.id,
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.paciente.count({ where }),
+    ]);
+
+    return {
+      data: data.map((patient) => this.toPatientResponse(patient)),
+      total,
+      page,
+      limit,
+    };
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Ver detalle de paciente' })
+  @ApiBearerAuth()
+  @ApiOkResponse()
+  async findById(@Param('id') id: string): Promise<PatientResponse> {
+    const patient = await this.prisma.paciente.findUnique({
+      where: { id: Number(id) },
+    });
+
+    if (!patient) {
+      throw new NotFoundException('Paciente no encontrado.');
+    }
+
+    return this.toPatientResponse(patient);
+  }
+
+  @Post()
+  @ApiOperation({ summary: 'Crear un paciente' })
+  @ApiBearerAuth()
+  @ApiCreatedResponse()
+  create(@Body() payload: CreatePatientRequestDto) {
+    return this.createPatientUseCase.execute(payload);
+  }
+
+  @Put(':id')
+  @ApiOperation({ summary: 'Actualizar datos del paciente' })
+  @ApiBearerAuth()
+  @ApiOkResponse()
+  async update(
+    @Param('id') id: string,
+    @Body() payload: UpdatePatientRequestDto,
+  ): Promise<PatientResponse> {
+    await this.ensurePatientExists(id);
+
+    const patient = await this.prisma.paciente.update({
+      where: { id: Number(id) },
+      data: {
+        nombres: payload.nombres,
+        apellidos: payload.apellidos,
+        fechaNacimiento: payload.fechaNacimiento
+          ? new Date(payload.fechaNacimiento)
+          : undefined,
+        telefonoWhatsapp: payload.telefonoWhatsapp,
+        alergiasCriticas: payload.alergiasCriticas,
+      },
+    });
+
+    return this.toPatientResponse(patient);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Eliminar paciente' })
+  @ApiBearerAuth()
+  @ApiOkResponse()
+  async remove(@Param('id') id: string): Promise<PatientResponse> {
+    await this.ensurePatientExists(id);
+
+    const patient = await this.prisma.paciente.update({
+      where: { id: Number(id) },
+      data: { estado: false },
+    });
+
+    return this.toPatientResponse(patient);
+  }
+
+  private async ensurePatientExists(id: string): Promise<void> {
+    const patient = await this.prisma.paciente.findUnique({
+      where: { id: Number(id) },
+      select: { id: true },
+    });
+
+    if (!patient) {
+      throw new NotFoundException('Paciente no encontrado.');
+    }
+  }
+
+  private toPatientResponse(patient: {
+    id: number;
+    nombres: string;
+    apellidos: string;
+    fechaNacimiento: Date | null;
+    telefonoWhatsapp: string | null;
+    alergiasCriticas: string | null;
+    estado: boolean;
+  }): PatientResponse {
+    return {
+      id: String(patient.id),
+      firstName: patient.nombres,
+      lastName: patient.apellidos,
+      documentNumber: '',
+      phone: patient.telefonoWhatsapp ?? '',
+      email: '',
+      birthDate: patient.fechaNacimiento?.toISOString().slice(0, 10) ?? null,
+      status: patient.estado ? 'active' : 'inactive',
+      medicalHistory: {
+        allergies: patient.alergiasCriticas ? [patient.alergiasCriticas] : [],
+        conditions: [],
+        medications: [],
+      },
+      notes: '',
+    };
+  }
 }
