@@ -152,7 +152,11 @@ export class MessagesController {
     fechaHoraProgramada: Date;
     fechaHoraEnvio: Date | null;
     errorDetalle: string | null;
-    plantilla: { nombrePlantilla: string; tipoMensaje: string; contenido: string };
+    plantilla: {
+      nombrePlantilla: string;
+      tipoMensaje: string;
+      contenido: string;
+    };
     paciente: { nombres: string; apellidos: string };
     estadoEnvio: { nombreEstado: string };
   }) {
@@ -173,7 +177,10 @@ export class MessagesController {
     };
   }
 
-  private toPositiveNumber(value: string | undefined, fallback: number): number {
+  private toPositiveNumber(
+    value: string | undefined,
+    fallback: number,
+  ): number {
     const number = Number(value ?? fallback);
 
     return Number.isFinite(number) ? Math.max(number, 1) : fallback;

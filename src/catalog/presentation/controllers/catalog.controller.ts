@@ -168,7 +168,10 @@ export class CatalogController {
     };
   }
 
-  private toPositiveNumber(value: string | undefined, fallback: number): number {
+  private toPositiveNumber(
+    value: string | undefined,
+    fallback: number,
+  ): number {
     const number = Number(value ?? fallback);
 
     return Number.isFinite(number) ? Math.max(number, 1) : fallback;

@@ -70,7 +70,9 @@ export class RolesController {
   @ApiBearerAuth()
   @ApiOkResponse({ type: RolResponseDto })
   async findById(@Param('id') id: string) {
-    const role = await this.prisma.role.findUnique({ where: { id: Number(id) } });
+    const role = await this.prisma.role.findUnique({
+      where: { id: Number(id) },
+    });
 
     if (!role) {
       throw new NotFoundException('Rol no encontrado.');
@@ -131,7 +133,10 @@ export class RolesController {
     }
   }
 
-  private toPositiveNumber(value: string | undefined, fallback: number): number {
+  private toPositiveNumber(
+    value: string | undefined,
+    fallback: number,
+  ): number {
     const number = Number(value ?? fallback);
 
     return Number.isFinite(number) ? Math.max(number, 1) : fallback;
