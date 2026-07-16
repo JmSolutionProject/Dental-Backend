@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -93,8 +94,12 @@ export class OdontogramController {
   async listDetails(@Query() query: Record<string, string | undefined>) {
     const page = this.toPositiveNumber(query.page, 1);
     const limit = Math.min(this.toPositiveNumber(query.limit, 10), 100);
+    const where: Prisma.OdontogramaDetalleWhereInput = query.patientId
+      ? { odontograma: { pacienteId: Number(query.patientId) } }
+      : {};
     const [data, total] = await this.prisma.$transaction([
       this.prisma.odontogramaDetalle.findMany({
+        where,
         orderBy: { id: 'asc' },
         skip: (page - 1) * limit,
         take: limit,
@@ -105,7 +110,7 @@ export class OdontogramController {
           odontograma: true,
         },
       }),
-      this.prisma.odontogramaDetalle.count(),
+      this.prisma.odontogramaDetalle.count({ where }),
     ]);
 
     return {
@@ -113,6 +118,31 @@ export class OdontogramController {
       total,
       page,
       limit,
+    };
+  }
+
+  @Get('details/by-patient/:patientId')
+  @ApiOperation({ summary: 'Listar detalles del odontograma de un paciente' })
+  @ApiBearerAuth()
+  @ApiOkResponse()
+  async listDetailsByPatient(@Param('patientId') patientId: string) {
+    await this.ensurePatientExists(patientId);
+
+    const details = await this.prisma.odontogramaDetalle.findMany({
+      where: { odontograma: { pacienteId: Number(patientId) } },
+      orderBy: { id: 'asc' },
+      include: {
+        piezaDental: true,
+        superficie: true,
+        estadoPieza: true,
+        odontograma: true,
+      },
+    });
+
+    return {
+      patientId,
+      dentition: 'adult',
+      details: details.map((detail) => this.toDetailResponse(detail)),
     };
   }
 
@@ -144,8 +174,60 @@ export class OdontogramController {
   })
   @ApiBearerAuth()
   @ApiCreatedResponse({ type: OdontogramDetailResponseDto })
-  registerDetail(@Body() payload: RegisterOdontogramDetailRequestDto) {
-    return this.registerOdontogramDetailUseCase.execute(payload);
+  async registerDetail(@Body() payload: RegisterOdontogramDetailRequestDto) {
+    const patientId = payload.patientId ?? payload.pacienteId;
+
+    if (!patientId) {
+      throw new BadRequestException('patientId es requerido.');
+    }
+
+    await this.ensurePatientExists(String(patientId));
+
+    const odontogram = await this.resolvePatientOdontogram(patientId, payload);
+    const piece = await this.resolveDentalPiece(payload);
+    const surface = await this.resolveDentalSurface(payload);
+    const state = await this.resolveToothState(payload);
+    const existingDetail = await this.prisma.odontogramaDetalle.findFirst({
+      where: {
+        odontogramaId: odontogram.id,
+        piezaDentalId: piece.id,
+        superficieId: surface?.id ?? null,
+      },
+    });
+    const data = {
+      estadoPiezaId: state.id,
+      diagnostico: payload.diagnostico ?? payload.condition ?? state.nombreEstado,
+      tratamientoRecomendado: payload.tratamientoRecomendado,
+      observacion: payload.observacion ?? payload.notes,
+      superficieId: surface?.id ?? null,
+    };
+
+    const detail = existingDetail
+      ? await this.prisma.odontogramaDetalle.update({
+          where: { id: existingDetail.id },
+          data,
+          include: {
+            piezaDental: true,
+            superficie: true,
+            estadoPieza: true,
+            odontograma: true,
+          },
+        })
+      : await this.prisma.odontogramaDetalle.create({
+          data: {
+            odontogramaId: odontogram.id,
+            piezaDentalId: piece.id,
+            ...data,
+          },
+          include: {
+            piezaDental: true,
+            superficie: true,
+            estadoPieza: true,
+            odontograma: true,
+          },
+        });
+
+    return this.toDetailResponse(detail);
   }
 
   @Put('details/:id')
@@ -203,6 +285,191 @@ export class OdontogramController {
     }
   }
 
+  private async ensurePatientExists(patientId: string): Promise<void> {
+    const patient = await this.prisma.paciente.findUnique({
+      where: { id: Number(patientId) },
+      select: { id: true },
+    });
+
+    if (!patient) {
+      throw new NotFoundException('Paciente no encontrado.');
+    }
+  }
+
+  private async resolvePatientOdontogram(
+    patientId: number,
+    payload: RegisterOdontogramDetailRequestDto,
+  ) {
+    if (payload.odontogramaId) {
+      const odontogram = await this.prisma.odontograma.findUnique({
+        where: { id: payload.odontogramaId },
+      });
+
+      if (!odontogram) {
+        throw new NotFoundException('Odontograma no encontrado.');
+      }
+
+      return odontogram;
+    }
+
+    const existing = await this.prisma.odontograma.findFirst({
+      where: { pacienteId: patientId, citaId: payload.citaId },
+      orderBy: { fechaRegistro: 'desc' },
+    });
+
+    if (existing) {
+      return existing;
+    }
+
+    return this.prisma.odontograma.create({
+      data: {
+        pacienteId: patientId,
+        citaId: payload.citaId,
+        observacionGeneral: payload.observacionGeneral,
+      },
+    });
+  }
+
+  private async resolveDentalPiece(payload: RegisterOdontogramDetailRequestDto) {
+    if (payload.piezaDentalId) {
+      const piece = await this.prisma.piezaDental.findUnique({
+        where: { id: payload.piezaDentalId },
+      });
+
+      if (!piece) {
+        throw new NotFoundException('Pieza dental no encontrada.');
+      }
+
+      return piece;
+    }
+
+    if (!payload.fdiNumber) {
+      throw new BadRequestException('fdiNumber o piezaDentalId es requerido.');
+    }
+
+    const codigoFdi = String(payload.fdiNumber);
+    const existing = await this.prisma.piezaDental.findUnique({
+      where: { codigoFdi },
+    });
+
+    if (existing) {
+      return existing;
+    }
+
+    return this.createDentalPiece(codigoFdi);
+  }
+
+  private async createDentalPiece(codigoFdi: string) {
+    const quadrant = Number(codigoFdi[0]);
+    const position = Number(codigoFdi[1]);
+    const isPermanent = [1, 2, 3, 4].includes(quadrant);
+    const isTemporary = [5, 6, 7, 8].includes(quadrant);
+    const maxPosition = isPermanent ? 8 : 5;
+
+    if (
+      codigoFdi.length !== 2 ||
+      (!isPermanent && !isTemporary) ||
+      !Number.isInteger(position) ||
+      position < 1 ||
+      position > maxPosition
+    ) {
+      throw new BadRequestException('Codigo FDI invalido.');
+    }
+
+    return this.prisma.piezaDental.create({
+      data: {
+        codigoFdi,
+        nombrePieza: `Pieza FDI ${codigoFdi}`,
+        tipoPieza: isPermanent ? 'permanente' : 'temporal',
+        cuadrante: quadrant,
+        arcada: [1, 2, 5, 6].includes(quadrant) ? 'superior' : 'inferior',
+        lado: [1, 4, 5, 8].includes(quadrant) ? 'derecho' : 'izquierdo',
+        posicion: position,
+        estado: true,
+      },
+    });
+  }
+
+  private async resolveDentalSurface(
+    payload: RegisterOdontogramDetailRequestDto,
+  ) {
+    if (payload.superficieId) {
+      const surface = await this.prisma.superficieDental.findUnique({
+        where: { id: payload.superficieId },
+      });
+
+      if (!surface) {
+        throw new NotFoundException('Superficie dental no encontrada.');
+      }
+
+      return surface;
+    }
+
+    if (!payload.surface) {
+      return null;
+    }
+
+    const existing = await this.prisma.superficieDental.findFirst({
+      where: {
+        OR: [
+          { nombreSuperficie: { equals: payload.surface, mode: 'insensitive' } },
+          { abreviatura: { equals: payload.surface, mode: 'insensitive' } },
+        ],
+      },
+    });
+
+    if (existing) {
+      return existing;
+    }
+
+    return this.prisma.superficieDental.create({
+      data: {
+        nombreSuperficie: payload.surface,
+        abreviatura: this.toSurfaceAbbreviation(payload.surface),
+      },
+    });
+  }
+
+  private async resolveToothState(payload: RegisterOdontogramDetailRequestDto) {
+    if (payload.estadoPiezaId) {
+      const state = await this.prisma.estadoPiezaDental.findUnique({
+        where: { id: payload.estadoPiezaId },
+      });
+
+      if (!state) {
+        throw new NotFoundException('Estado de pieza no encontrado.');
+      }
+
+      return state;
+    }
+
+    const condition = payload.condition ?? payload.diagnostico;
+
+    if (!condition) {
+      throw new BadRequestException('condition o estadoPiezaId es requerido.');
+    }
+
+    const existing = await this.prisma.estadoPiezaDental.findFirst({
+      where: { nombreEstado: { equals: condition, mode: 'insensitive' } },
+    });
+
+    if (existing) {
+      return existing;
+    }
+
+    return this.prisma.estadoPiezaDental.create({
+      data: { nombreEstado: condition },
+    });
+  }
+
+  private toSurfaceAbbreviation(surface: string): string {
+    if (surface === 'lingualPalatal') {
+      return 'LP';
+    }
+
+    return surface.slice(0, 5).toUpperCase();
+  }
+
   private toDetailResponse(detail: {
     id: number;
     odontogramaId: number;
@@ -222,7 +489,9 @@ export class OdontogramController {
       dentalPieceId: String(detail.piezaDentalId),
       fdiNumber: Number(detail.piezaDental.codigoFdi),
       dentalPieceName: detail.piezaDental.nombrePieza,
+      condition: detail.diagnostico ?? detail.estadoPieza.nombreEstado,
       surfaceId: detail.superficieId ? String(detail.superficieId) : null,
+      surface: detail.superficie?.nombreSuperficie ?? null,
       surfaceName: detail.superficie?.nombreSuperficie ?? null,
       stateId: String(detail.estadoPiezaId),
       stateName: detail.estadoPieza.nombreEstado,

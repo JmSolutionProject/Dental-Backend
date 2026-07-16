@@ -3,11 +3,19 @@ import { Type } from 'class-transformer';
 import { IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
 
 export class RegisterOdontogramDetailRequestDto {
-  @ApiProperty({ example: 1 })
+  @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  pacienteId: number;
+  pacienteId?: number;
+
+  @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  patientId?: number;
 
   @ApiPropertyOptional({ example: 10 })
   @IsOptional()
@@ -23,14 +31,22 @@ export class RegisterOdontogramDetailRequestDto {
   @Min(1)
   odontogramaId?: number;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 1,
     description: 'Identificador interno de la pieza dental.',
   })
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  piezaDentalId: number;
+  piezaDentalId?: number;
+
+  @ApiPropertyOptional({ example: 22 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  fdiNumber?: number;
 
   @ApiPropertyOptional({ example: 6 })
   @IsOptional()
@@ -39,11 +55,24 @@ export class RegisterOdontogramDetailRequestDto {
   @Min(1)
   superficieId?: number;
 
-  @ApiProperty({ example: 2 })
+  @ApiPropertyOptional({ example: 'vestibular' })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  surface?: string;
+
+  @ApiPropertyOptional({ example: 2 })
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  estadoPiezaId: number;
+  estadoPiezaId?: number;
+
+  @ApiPropertyOptional({ example: 'caries' })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  condition?: string;
 
   @ApiPropertyOptional({ example: 'Caries oclusal en pieza 16.' })
   @IsOptional()
@@ -62,6 +91,11 @@ export class RegisterOdontogramDetailRequestDto {
   @IsString()
   @IsNotEmpty()
   observacion?: string;
+
+  @ApiPropertyOptional({ example: 'Caries visible' })
+  @IsOptional()
+  @IsString()
+  notes?: string;
 
   @ApiPropertyOptional({ example: 'Odontograma inicial del paciente.' })
   @IsOptional()
