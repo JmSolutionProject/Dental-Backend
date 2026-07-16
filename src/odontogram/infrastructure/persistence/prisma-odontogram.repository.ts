@@ -57,7 +57,9 @@ export class PrismaOdontogramRepository implements OdontogramRepository {
   }
 
   existsDentalSurface(id: number): Promise<boolean> {
-    return Promise.resolve(this.dentalSurfaces.some((surface) => surface.id === id));
+    return Promise.resolve(
+      this.dentalSurfaces.some((surface) => surface.id === id),
+    );
   }
 
   existsToothState(id: number): Promise<boolean> {
@@ -84,7 +86,9 @@ export class PrismaOdontogramRepository implements OdontogramRepository {
     return Promise.resolve(detail);
   }
 
-  private resolveOdontogramId(command: RegisterOdontogramDetailCommand): number {
+  private resolveOdontogramId(
+    command: RegisterOdontogramDetailCommand,
+  ): number {
     if (command.odontogramaId) {
       return command.odontogramaId;
     }

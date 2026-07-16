@@ -17,21 +17,17 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { Prisma } from '@prisma/client';
 import { JwtAuthGuard } from '@auth/infrastructure/guards/jwt-auth.guard';
-import { PrismaService } from '@shared/infrastructure/persistence/prisma/prisma.service';
+import { CancelAppointmentUseCase } from '../../application/use-cases/cancel-appointment.use-case';
+import { CheckAvailabilityUseCase } from '../../application/use-cases/check-availability.use-case';
 import { CreateAppointmentUseCase } from '../../application/use-cases/create-appointment.use-case';
+import { FindAllAppointmentsUseCase } from '../../application/use-cases/find-all-appointments.use-case';
+import { FindAppointmentByIdUseCase } from '../../application/use-cases/find-appointment-by-id.use-case';
+import { UpdateAppointmentUseCase } from '../../application/use-cases/update-appointment.use-case';
+import { AppointmentEntity } from '../../domain/entities/appointment.entity';
 import { AppointmentAvailabilityRequestDto } from '../dtos/request/appointment-availability.request.dto';
 import { CreateAppointmentRequestDto } from '../dtos/request/create-appointment.request.dto';
 import { UpdateAppointmentRequestDto } from '../dtos/request/update-appointment.request.dto';
-
-type AppointmentWithRelations = Prisma.CitaGetPayload<{
-  include: {
-    paciente: true;
-    medico: true;
-    estadoCita: true;
-  };
-}>;
 
 type AppointmentResponse = {
   id: string;
@@ -51,7 +47,11 @@ type AppointmentResponse = {
 export class AppointmentsController {
   constructor(
     private readonly createAppointmentUseCase: CreateAppointmentUseCase,
-    private readonly prisma: PrismaService,
+    private readonly findAllAppointmentsUseCase: FindAllAppointmentsUseCase,
+    private readonly findAppointmentByIdUseCase: FindAppointmentByIdUseCase,
+    private readonly updateAppointmentUseCase: UpdateAppointmentUseCase,
+    private readonly cancelAppointmentUseCase: CancelAppointmentUseCase,
+    private readonly checkAvailabilityUseCase: CheckAvailabilityUseCase,
   ) {}
 
   @Get('availability')
@@ -63,27 +63,15 @@ export class AppointmentsController {
       return { available: false, conflicts: [] };
     }
 
-    const start = new Date(query.start);
-    const end = new Date(query.end);
-    const conflicts = await this.prisma.cita.findMany({
-      where: {
-        medicoId: Number(query.dentistId),
-        fechaHoraInicio: { lt: end },
-        fechaHoraFin: { gt: start },
-        estadoCita: {
-          nombreEstado: { not: 'cancelled', mode: 'insensitive' },
-        },
-      },
-      include: {
-        paciente: true,
-        medico: true,
-        estadoCita: true,
-      },
+    const result = await this.checkAvailabilityUseCase.execute({
+      medicoId: Number(query.dentistId),
+      fechaHoraInicio: new Date(query.start),
+      fechaHoraFin: new Date(query.end),
     });
 
     return {
-      available: conflicts.length === 0,
-      conflicts: conflicts.map((appointment) =>
+      available: result.available,
+      conflicts: result.conflicts.map((appointment) =>
         this.toAppointmentResponse(appointment),
       ),
     };
@@ -96,25 +84,19 @@ export class AppointmentsController {
   async list(@Query() query: Record<string, string | undefined>) {
     const page = this.toPositiveNumber(query.page, 1);
     const limit = Math.min(this.toPositiveNumber(query.limit, 10), 100);
-    const [data, total] = await this.prisma.$transaction([
-      this.prisma.cita.findMany({
-        orderBy: { fechaHoraInicio: 'asc' },
-        skip: (page - 1) * limit,
-        take: limit,
-        include: {
-          paciente: true,
-          medico: true,
-          estadoCita: true,
-        },
-      }),
-      this.prisma.cita.count(),
-    ]);
 
-    return {
-      data: data.map((appointment) => this.toAppointmentResponse(appointment)),
-      total,
+    const result = await this.findAllAppointmentsUseCase.execute({
       page,
       limit,
+    });
+
+    return {
+      data: result.data.map((appointment) =>
+        this.toAppointmentResponse(appointment),
+      ),
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
     };
   }
 
@@ -123,14 +105,9 @@ export class AppointmentsController {
   @ApiBearerAuth()
   @ApiOkResponse()
   async findById(@Param('id') id: string): Promise<AppointmentResponse> {
-    const appointment = await this.prisma.cita.findUnique({
-      where: { id: Number(id) },
-      include: {
-        paciente: true,
-        medico: true,
-        estadoCita: true,
-      },
-    });
+    const appointment = await this.findAppointmentByIdUseCase.execute(
+      Number(id),
+    );
 
     if (!appointment) {
       throw new NotFoundException('Cita no encontrada.');
@@ -143,8 +120,20 @@ export class AppointmentsController {
   @ApiOperation({ summary: 'Crear una cita' })
   @ApiBearerAuth()
   @ApiCreatedResponse()
-  create(@Body() payload: CreateAppointmentRequestDto) {
-    return this.createAppointmentUseCase.execute(payload);
+  async create(
+    @Body() payload: CreateAppointmentRequestDto,
+  ): Promise<AppointmentResponse> {
+    const appointment = await this.createAppointmentUseCase.execute({
+      pacienteId: payload.pacienteId,
+      medicoId: payload.medicoId,
+      estadoCitaId: payload.estadoCitaId,
+      fechaHoraInicio: payload.fechaHoraInicio,
+      fechaHoraFin: payload.fechaHoraFin,
+      motivoPrincipal: payload.motivoPrincipal,
+      observaciones: payload.observaciones,
+    });
+
+    return this.toAppointmentResponse(appointment);
   }
 
   @Put(':id')
@@ -155,29 +144,20 @@ export class AppointmentsController {
     @Param('id') id: string,
     @Body() payload: UpdateAppointmentRequestDto,
   ): Promise<AppointmentResponse> {
-    await this.ensureAppointmentExists(id);
+    await this.ensureAppointmentExists(Number(id));
 
-    const appointment = await this.prisma.cita.update({
-      where: { id: Number(id) },
-      data: {
+    const appointment = await this.updateAppointmentUseCase.execute(
+      Number(id),
+      {
         pacienteId: payload.pacienteId,
         medicoId: payload.medicoId,
         estadoCitaId: payload.estadoCitaId,
-        fechaHoraInicio: payload.fechaHoraInicio
-          ? new Date(payload.fechaHoraInicio)
-          : undefined,
-        fechaHoraFin: payload.fechaHoraFin
-          ? new Date(payload.fechaHoraFin)
-          : undefined,
+        fechaHoraInicio: payload.fechaHoraInicio,
+        fechaHoraFin: payload.fechaHoraFin,
         motivoPrincipal: payload.motivoPrincipal,
         observaciones: payload.observaciones,
       },
-      include: {
-        paciente: true,
-        medico: true,
-        estadoCita: true,
-      },
-    });
+    );
 
     return this.toAppointmentResponse(appointment);
   }
@@ -187,70 +167,37 @@ export class AppointmentsController {
   @ApiBearerAuth()
   @ApiOkResponse()
   async remove(@Param('id') id: string): Promise<AppointmentResponse> {
-    await this.ensureAppointmentExists(id);
-    const cancelledStatus = await this.resolveAppointmentStatus('cancelled');
-    const appointment = await this.prisma.cita.update({
-      where: { id: Number(id) },
-      data: { estadoCitaId: cancelledStatus.id },
-      include: {
-        paciente: true,
-        medico: true,
-        estadoCita: true,
-      },
-    });
+    await this.ensureAppointmentExists(Number(id));
+
+    const appointment = await this.cancelAppointmentUseCase.execute(Number(id));
 
     return this.toAppointmentResponse(appointment);
   }
 
-  private async ensureAppointmentExists(id: string): Promise<void> {
-    const appointment = await this.prisma.cita.findUnique({
-      where: { id: Number(id) },
-      select: { id: true },
-    });
+  private async ensureAppointmentExists(id: number): Promise<void> {
+    const appointment = await this.findAppointmentByIdUseCase.execute(id);
 
     if (!appointment) {
       throw new NotFoundException('Cita no encontrada.');
     }
   }
 
-  private async resolveAppointmentStatus(nombreEstado: string) {
-    const existing = await this.prisma.estadoCita.findFirst({
-      where: { nombreEstado: { equals: nombreEstado, mode: 'insensitive' } },
-    });
-
-    if (existing) {
-      return existing;
-    }
-
-    return this.prisma.estadoCita.create({ data: { nombreEstado } });
-  }
-
-  private toPositiveNumber(
-    value: string | undefined,
-    fallback: number,
-  ): number {
-    const number = Number(value ?? fallback);
-
-    return Number.isFinite(number) ? Math.max(number, 1) : fallback;
-  }
-
   private toAppointmentResponse(
-    appointment: AppointmentWithRelations,
+    appointment: AppointmentEntity,
   ): AppointmentResponse {
+    const status = this.toFrontendStatus(appointment.estadoNombre ?? '');
+
     return {
       id: String(appointment.id),
       patientId: String(appointment.pacienteId),
-      patientName: `${appointment.paciente.nombres} ${appointment.paciente.apellidos}`,
+      patientName: appointment.pacienteName ?? '',
       dentistId: String(appointment.medicoId),
-      dentistName: appointment.medico.nombreCompleto,
+      dentistName: appointment.medicoName ?? '',
       scheduledAt: appointment.fechaHoraInicio.toISOString(),
       reason: appointment.motivoPrincipal ?? '',
-      status: this.toFrontendStatus(appointment.estadoCita.nombreEstado),
+      status,
       cancelReason:
-        this.toFrontendStatus(appointment.estadoCita.nombreEstado) ===
-        'cancelled'
-          ? appointment.observaciones
-          : null,
+        status === 'cancelled' ? (appointment.observaciones ?? null) : null,
     };
   }
 
@@ -266,5 +213,14 @@ export class AppointmentsController {
     }
 
     return 'scheduled';
+  }
+
+  private toPositiveNumber(
+    value: string | undefined,
+    fallback: number,
+  ): number {
+    const number = Number(value ?? fallback);
+
+    return Number.isFinite(number) ? Math.max(number, 1) : fallback;
   }
 }

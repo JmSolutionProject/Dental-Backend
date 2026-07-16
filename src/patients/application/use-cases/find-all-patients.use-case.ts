@@ -1,19 +1,19 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { PatientEntity } from '../../domain/entities/patient.entity';
 import {
-  CreatePatientParams,
+  FindAllPatientsParams,
+  PaginatedPatientsResult,
   PATIENT_REPOSITORY,
   type PatientRepository,
 } from '../../domain/repositories/patient.repository';
 
 @Injectable()
-export class CreatePatientUseCase {
+export class FindAllPatientsUseCase {
   constructor(
     @Inject(PATIENT_REPOSITORY)
     private readonly patientRepository: PatientRepository,
   ) {}
 
-  execute(payload: CreatePatientParams): Promise<PatientEntity> {
-    return this.patientRepository.create(payload);
+  execute(params: FindAllPatientsParams): Promise<PaginatedPatientsResult> {
+    return this.patientRepository.findAll(params);
   }
 }

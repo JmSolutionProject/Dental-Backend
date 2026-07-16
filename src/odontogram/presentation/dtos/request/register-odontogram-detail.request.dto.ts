@@ -1,12 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import {
-  IsInt,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  Min,
-} from 'class-validator';
+import { IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
 
 export class RegisterOdontogramDetailRequestDto {
   @ApiProperty({ example: 1 })
@@ -29,7 +23,10 @@ export class RegisterOdontogramDetailRequestDto {
   @Min(1)
   odontogramaId?: number;
 
-  @ApiProperty({ example: 1, description: 'Identificador interno de la pieza dental.' })
+  @ApiProperty({
+    example: 1,
+    description: 'Identificador interno de la pieza dental.',
+  })
   @Type(() => Number)
   @IsInt()
   @Min(1)

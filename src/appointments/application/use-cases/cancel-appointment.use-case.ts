@@ -3,17 +3,16 @@ import { AppointmentEntity } from '../../domain/entities/appointment.entity';
 import {
   APPOINTMENT_REPOSITORY,
   type AppointmentRepository,
-  CreateAppointmentParams,
 } from '../../domain/repositories/appointment.repository';
 
 @Injectable()
-export class CreateAppointmentUseCase {
+export class CancelAppointmentUseCase {
   constructor(
     @Inject(APPOINTMENT_REPOSITORY)
     private readonly appointmentRepository: AppointmentRepository,
   ) {}
 
-  execute(payload: CreateAppointmentParams): Promise<AppointmentEntity> {
-    return this.appointmentRepository.create(payload);
+  execute(id: number): Promise<AppointmentEntity> {
+    return this.appointmentRepository.cancel(id);
   }
 }

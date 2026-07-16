@@ -30,7 +30,9 @@ export class RegisterOdontogramDetailUseCase {
       );
 
       if (!surfaceExists) {
-        throw new BadRequestException('La superficie dental indicada no existe.');
+        throw new BadRequestException(
+          'La superficie dental indicada no existe.',
+        );
       }
     }
 

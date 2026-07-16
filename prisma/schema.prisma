@@ -44,6 +44,7 @@ model Paciente {
   id               Int       @id @default(autoincrement())
   nombres          String    @db.VarChar(100)
   apellidos        String    @db.VarChar(100)
+  numeroDocumento  String?   @map("numero_documento") @db.VarChar(20)
   fechaNacimiento  DateTime? @map("fecha_nacimiento") @db.Date
   telefonoWhatsapp String?   @map("telefono_whatsapp") @db.VarChar(20)
   alergiasCriticas String?   @map("alergias_criticas") @db.Text

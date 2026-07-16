@@ -1,19 +1,18 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PatientEntity } from '../../domain/entities/patient.entity';
 import {
-  CreatePatientParams,
   PATIENT_REPOSITORY,
   type PatientRepository,
 } from '../../domain/repositories/patient.repository';
 
 @Injectable()
-export class CreatePatientUseCase {
+export class SoftDeletePatientUseCase {
   constructor(
     @Inject(PATIENT_REPOSITORY)
     private readonly patientRepository: PatientRepository,
   ) {}
 
-  execute(payload: CreatePatientParams): Promise<PatientEntity> {
-    return this.patientRepository.create(payload);
+  execute(id: number): Promise<PatientEntity> {
+    return this.patientRepository.softDelete(id);
   }
 }

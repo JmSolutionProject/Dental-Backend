@@ -17,10 +17,13 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { Prisma } from '@prisma/client';
 import { JwtAuthGuard } from '@auth/infrastructure/guards/jwt-auth.guard';
-import { PrismaService } from '@shared/infrastructure/persistence/prisma/prisma.service';
 import { CreatePatientUseCase } from '../../application/use-cases/create-patient.use-case';
+import { FindAllPatientsUseCase } from '../../application/use-cases/find-all-patients.use-case';
+import { FindPatientByIdUseCase } from '../../application/use-cases/find-patient-by-id.use-case';
+import { SoftDeletePatientUseCase } from '../../application/use-cases/soft-delete-patient.use-case';
+import { UpdatePatientUseCase } from '../../application/use-cases/update-patient.use-case';
+import { PatientEntity } from '../../domain/entities/patient.entity';
 import { CreatePatientRequestDto } from '../dtos/request/create-patient.request.dto';
 import { ListPatientsRequestDto } from '../dtos/request/list-patients.request.dto';
 import { UpdatePatientRequestDto } from '../dtos/request/update-patient.request.dto';
@@ -42,14 +45,94 @@ type PatientResponse = {
   notes: string;
 };
 
+interface ReniecApiResponse {
+  nombres?: string;
+  nombre?: string;
+  apellidoPaterno?: string;
+  paterno?: string;
+  apellidoMaterno?: string;
+  materno?: string;
+  apellidos?: string;
+}
+
 @ApiTags('patients')
 @UseGuards(JwtAuthGuard)
 @Controller('patients')
 export class PatientsController {
   constructor(
     private readonly createPatientUseCase: CreatePatientUseCase,
-    private readonly prisma: PrismaService,
+    private readonly findAllPatientsUseCase: FindAllPatientsUseCase,
+    private readonly findPatientByIdUseCase: FindPatientByIdUseCase,
+    private readonly updatePatientUseCase: UpdatePatientUseCase,
+    private readonly softDeletePatientUseCase: SoftDeletePatientUseCase,
   ) {}
+
+  @Get('reniec/:dni')
+  @ApiOperation({ summary: 'Consultar datos de RENIEC por DNI' })
+  @ApiBearerAuth()
+  async lookupReniec(@Param('dni') dni: string) {
+    const cleanDni = dni?.trim();
+    if (!cleanDni || !/^\d{8}$/.test(cleanDni)) {
+      return {
+        success: false,
+        message: 'El DNI debe tener 8 digitos numericos.',
+      };
+    }
+
+    const apis = [
+      `https://api.apis.net.pe/v1/dni?numero=${cleanDni}`,
+      `https://apiperu.dev/api/dni/${cleanDni}`,
+      `https://dniruc.apisperu.com/api/v1/dni/${cleanDni}`,
+      `https://api.apis.net.pe/v2/reniec/dni?numero=${cleanDni}`,
+    ];
+
+    for (const url of apis) {
+      try {
+        const response = await fetch(url, {
+          headers: { Accept: 'application/json' },
+        });
+        if (response.ok) {
+          const json = (await response.json()) as {
+            data?: ReniecApiResponse;
+          } & ReniecApiResponse;
+          const resData = json.data ?? json;
+          const nombres = (resData.nombres ?? resData.nombre ?? '').trim();
+          const apellidoPaterno = (
+            resData.apellidoPaterno ??
+            resData.paterno ??
+            ''
+          ).trim();
+          const apellidoMaterno = (
+            resData.apellidoMaterno ??
+            resData.materno ??
+            ''
+          ).trim();
+          const apellidos = (
+            resData.apellidos ?? `${apellidoPaterno} ${apellidoMaterno}`
+          ).trim();
+
+          if (nombres || apellidos) {
+            return {
+              success: true,
+              data: {
+                nombres,
+                apellidoPaterno,
+                apellidoMaterno,
+                apellidos,
+              },
+            };
+          }
+        }
+      } catch {
+        // Try next endpoint
+      }
+    }
+
+    return {
+      success: false,
+      message: 'No se encontro informacion para este numero de DNI.',
+    };
+  }
 
   @Get()
   @ApiOperation({ summary: 'Listar pacientes paginados' })
@@ -64,42 +147,20 @@ export class PatientsController {
     const limit = Number.isFinite(requestedLimit)
       ? Math.min(Math.max(requestedLimit, 1), 100)
       : 10;
-    const search = query.search?.trim();
-    const sortBy = query.sortBy ?? 'id';
-    const sortDir = query.sortDir ?? 'asc';
-    const sortFields: Record<string, Prisma.PacienteOrderByWithRelationInput> =
-      {
-        firstName: { nombres: sortDir },
-        lastName: { apellidos: sortDir },
-        birthDate: { fechaNacimiento: sortDir },
-        status: { estado: sortDir },
-        id: { id: sortDir },
-      };
-    const where: Prisma.PacienteWhereInput = search
-      ? {
-          OR: [
-            { nombres: { contains: search, mode: 'insensitive' } },
-            { apellidos: { contains: search, mode: 'insensitive' } },
-            { telefonoWhatsapp: { contains: search, mode: 'insensitive' } },
-          ],
-        }
-      : {};
 
-    const [data, total] = await this.prisma.$transaction([
-      this.prisma.paciente.findMany({
-        where,
-        orderBy: sortFields[sortBy] ?? sortFields.id,
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-      this.prisma.paciente.count({ where }),
-    ]);
-
-    return {
-      data: data.map((patient) => this.toPatientResponse(patient)),
-      total,
+    const result = await this.findAllPatientsUseCase.execute({
       page,
       limit,
+      search: query.search?.trim(),
+      sortBy: query.sortBy ?? 'id',
+      sortDir: query.sortDir ?? 'asc',
+    });
+
+    return {
+      data: result.data.map((patient) => this.toPatientResponse(patient)),
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
     };
   }
 
@@ -108,9 +169,7 @@ export class PatientsController {
   @ApiBearerAuth()
   @ApiOkResponse()
   async findById(@Param('id') id: string): Promise<PatientResponse> {
-    const patient = await this.prisma.paciente.findUnique({
-      where: { id: Number(id) },
-    });
+    const patient = await this.findPatientByIdUseCase.execute(Number(id));
 
     if (!patient) {
       throw new NotFoundException('Paciente no encontrado.');
@@ -123,8 +182,19 @@ export class PatientsController {
   @ApiOperation({ summary: 'Crear un paciente' })
   @ApiBearerAuth()
   @ApiCreatedResponse()
-  create(@Body() payload: CreatePatientRequestDto) {
-    return this.createPatientUseCase.execute(payload);
+  async create(
+    @Body() payload: CreatePatientRequestDto,
+  ): Promise<PatientResponse> {
+    const patient = await this.createPatientUseCase.execute({
+      nombres: payload.nombres,
+      apellidos: payload.apellidos,
+      fechaNacimiento: payload.fechaNacimiento,
+      numeroDocumento: payload.numeroDocumento,
+      telefonoWhatsapp: payload.telefonoWhatsapp,
+      alergiasCriticas: payload.alergiasCriticas,
+    });
+
+    return this.toPatientResponse(patient);
   }
 
   @Put(':id')
@@ -135,19 +205,15 @@ export class PatientsController {
     @Param('id') id: string,
     @Body() payload: UpdatePatientRequestDto,
   ): Promise<PatientResponse> {
-    await this.ensurePatientExists(id);
+    await this.ensurePatientExists(Number(id));
 
-    const patient = await this.prisma.paciente.update({
-      where: { id: Number(id) },
-      data: {
-        nombres: payload.nombres,
-        apellidos: payload.apellidos,
-        fechaNacimiento: payload.fechaNacimiento
-          ? new Date(payload.fechaNacimiento)
-          : undefined,
-        telefonoWhatsapp: payload.telefonoWhatsapp,
-        alergiasCriticas: payload.alergiasCriticas,
-      },
+    const patient = await this.updatePatientUseCase.execute(Number(id), {
+      nombres: payload.nombres,
+      apellidos: payload.apellidos,
+      fechaNacimiento: payload.fechaNacimiento,
+      numeroDocumento: payload.numeroDocumento,
+      telefonoWhatsapp: payload.telefonoWhatsapp,
+      alergiasCriticas: payload.alergiasCriticas,
     });
 
     return this.toPatientResponse(patient);
@@ -158,41 +224,27 @@ export class PatientsController {
   @ApiBearerAuth()
   @ApiOkResponse()
   async remove(@Param('id') id: string): Promise<PatientResponse> {
-    await this.ensurePatientExists(id);
+    await this.ensurePatientExists(Number(id));
 
-    const patient = await this.prisma.paciente.update({
-      where: { id: Number(id) },
-      data: { estado: false },
-    });
+    const patient = await this.softDeletePatientUseCase.execute(Number(id));
 
     return this.toPatientResponse(patient);
   }
 
-  private async ensurePatientExists(id: string): Promise<void> {
-    const patient = await this.prisma.paciente.findUnique({
-      where: { id: Number(id) },
-      select: { id: true },
-    });
+  private async ensurePatientExists(id: number): Promise<void> {
+    const patient = await this.findPatientByIdUseCase.execute(id);
 
     if (!patient) {
       throw new NotFoundException('Paciente no encontrado.');
     }
   }
 
-  private toPatientResponse(patient: {
-    id: number;
-    nombres: string;
-    apellidos: string;
-    fechaNacimiento: Date | null;
-    telefonoWhatsapp: string | null;
-    alergiasCriticas: string | null;
-    estado: boolean;
-  }): PatientResponse {
+  private toPatientResponse(patient: PatientEntity): PatientResponse {
     return {
       id: String(patient.id),
       firstName: patient.nombres,
       lastName: patient.apellidos,
-      documentNumber: '',
+      documentNumber: patient.numeroDocumento ?? '',
       phone: patient.telefonoWhatsapp ?? '',
       email: '',
       birthDate: patient.fechaNacimiento?.toISOString().slice(0, 10) ?? null,

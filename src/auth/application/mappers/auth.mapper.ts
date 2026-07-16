@@ -47,10 +47,14 @@ export class AuthMapper {
 
   toJwtPayload(user: UserEntity): JwtPayload {
     const authenticatedUser = this.toAuthenticatedUser(user);
+    const primaryRole = authenticatedUser.roles[0] ?? '';
 
     return {
       sub: authenticatedUser.id,
       ...authenticatedUser,
+      role: primaryRole,
+      clinicId: '', // kept empty until the user model supports clinics
+      name: authenticatedUser.nombreCompleto,
     };
   }
 

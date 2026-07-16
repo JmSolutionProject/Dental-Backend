@@ -1,6 +1,3 @@
-import { AppointmentServiceEntity } from './appointment-service.entity';
-import { AppointmentStatusEntity } from './appointment-status.entity';
-
 export class AppointmentEntity {
   id?: number;
   pacienteId!: number;
@@ -11,11 +8,11 @@ export class AppointmentEntity {
   motivoPrincipal?: string;
   observaciones?: string;
   fechaRegistro?: Date;
-  estado?: AppointmentStatusEntity;
-  servicios: AppointmentServiceEntity[] = [];
+  pacienteName?: string;
+  medicoName?: string;
+  estadoNombre?: string;
 
   constructor(partial: Partial<AppointmentEntity> = {}) {
     Object.assign(this, partial);
-    this.servicios = partial.servicios ?? [];
   }
 }

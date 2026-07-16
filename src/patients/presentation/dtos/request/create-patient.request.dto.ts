@@ -12,6 +12,12 @@ export class CreatePatientRequestDto {
   @MaxLength(100)
   apellidos!: string;
 
+  @ApiPropertyOptional({ example: '76543210' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  numeroDocumento?: string;
+
   @ApiPropertyOptional({ example: '1990-05-10' })
   @IsOptional()
   @IsDateString()

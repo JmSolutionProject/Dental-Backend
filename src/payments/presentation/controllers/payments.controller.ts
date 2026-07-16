@@ -18,8 +18,12 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@auth/infrastructure/guards/jwt-auth.guard';
-import { PrismaService } from '@shared/infrastructure/persistence/prisma/prisma.service';
 import { CreatePaymentUseCase } from '../../application/use-cases/create-payment.use-case';
+import { FindAllPaymentsUseCase } from '../../application/use-cases/find-all-payments.use-case';
+import { FindPaymentByIdUseCase } from '../../application/use-cases/find-payment-by-id.use-case';
+import { SoftDeletePaymentUseCase } from '../../application/use-cases/soft-delete-payment.use-case';
+import { UpdatePaymentUseCase } from '../../application/use-cases/update-payment.use-case';
+import { PaymentEntity } from '../../domain/entities/payment.entity';
 import { CreatePaymentRequestDto } from '../dtos/request/create-payment.request.dto';
 import { UpdatePaymentRequestDto } from '../dtos/request/update-payment.request.dto';
 
@@ -29,7 +33,10 @@ import { UpdatePaymentRequestDto } from '../dtos/request/update-payment.request.
 export class PaymentsController {
   constructor(
     private readonly createPaymentUseCase: CreatePaymentUseCase,
-    private readonly prisma: PrismaService,
+    private readonly findAllPaymentsUseCase: FindAllPaymentsUseCase,
+    private readonly findPaymentByIdUseCase: FindPaymentByIdUseCase,
+    private readonly updatePaymentUseCase: UpdatePaymentUseCase,
+    private readonly softDeletePaymentUseCase: SoftDeletePaymentUseCase,
   ) {}
 
   @Get()
@@ -39,21 +46,14 @@ export class PaymentsController {
   async list(@Query() query: Record<string, string | undefined>) {
     const page = this.toPositiveNumber(query.page, 1);
     const limit = Math.min(this.toPositiveNumber(query.limit, 10), 100);
-    const [data, total] = await this.prisma.$transaction([
-      this.prisma.pago.findMany({
-        orderBy: { fechaPago: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
-        include: { metodoPago: true, usuarioCobrador: true, cita: true },
-      }),
-      this.prisma.pago.count(),
-    ]);
+
+    const result = await this.findAllPaymentsUseCase.execute({ page, limit });
 
     return {
-      data: data.map((payment) => this.toPaymentResponse(payment)),
-      total,
-      page,
-      limit,
+      data: result.data.map((payment) => this.toPaymentResponse(payment)),
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
     };
   }
 
@@ -62,10 +62,7 @@ export class PaymentsController {
   @ApiBearerAuth()
   @ApiOkResponse()
   async findById(@Param('id') id: string) {
-    const payment = await this.prisma.pago.findUnique({
-      where: { id: Number(id) },
-      include: { metodoPago: true, usuarioCobrador: true, cita: true },
-    });
+    const payment = await this.findPaymentByIdUseCase.execute(Number(id));
 
     if (!payment) {
       throw new NotFoundException('Pago no encontrado.');
@@ -78,8 +75,18 @@ export class PaymentsController {
   @ApiOperation({ summary: 'Registrar un pago' })
   @ApiBearerAuth()
   @ApiCreatedResponse()
-  create(@Body() payload: CreatePaymentRequestDto) {
-    return this.createPaymentUseCase.execute(payload);
+  async create(@Body() payload: CreatePaymentRequestDto) {
+    const payment = await this.createPaymentUseCase.execute({
+      citaId: payload.citaId,
+      usuarioCobradorId: payload.usuarioCobradorId,
+      metodoPagoId: payload.metodoPagoId,
+      montoPagado: payload.montoPagado,
+      numeroOperacion: payload.numeroOperacion,
+      observacion: payload.observacion,
+      fechaPago: payload.fechaPago,
+    });
+
+    return this.toPaymentResponse(payment);
   }
 
   @Put(':id')
@@ -90,22 +97,19 @@ export class PaymentsController {
     @Param('id') id: string,
     @Body() payload: UpdatePaymentRequestDto,
   ) {
-    await this.ensurePaymentExists(id);
+    await this.ensurePaymentExists(Number(id));
 
-    await this.prisma.pago.update({
-      where: { id: Number(id) },
-      data: {
-        citaId: payload.citaId,
-        usuarioCobradorId: payload.usuarioCobradorId,
-        metodoPagoId: payload.metodoPagoId,
-        montoPagado: payload.montoPagado,
-        numeroOperacion: payload.numeroOperacion,
-        observacion: payload.observacion,
-        fechaPago: payload.fechaPago ? new Date(payload.fechaPago) : undefined,
-      },
+    const payment = await this.updatePaymentUseCase.execute(Number(id), {
+      citaId: payload.citaId,
+      usuarioCobradorId: payload.usuarioCobradorId,
+      metodoPagoId: payload.metodoPagoId,
+      montoPagado: payload.montoPagado,
+      numeroOperacion: payload.numeroOperacion,
+      observacion: payload.observacion,
+      fechaPago: payload.fechaPago,
     });
 
-    return this.findById(id);
+    return this.toPaymentResponse(payment);
   }
 
   @Delete(':id')
@@ -113,48 +117,30 @@ export class PaymentsController {
   @ApiBearerAuth()
   @ApiOkResponse()
   async remove(@Param('id') id: string) {
-    await this.ensurePaymentExists(id);
+    await this.ensurePaymentExists(Number(id));
 
-    await this.prisma.pago.update({
-      where: { id: Number(id) },
-      data: { estado: false },
-    });
+    const payment = await this.softDeletePaymentUseCase.execute(Number(id));
 
-    return this.findById(id);
+    return this.toPaymentResponse(payment);
   }
 
-  private async ensurePaymentExists(id: string): Promise<void> {
-    const payment = await this.prisma.pago.findUnique({
-      where: { id: Number(id) },
-      select: { id: true },
-    });
+  private async ensurePaymentExists(id: number): Promise<void> {
+    const payment = await this.findPaymentByIdUseCase.execute(id);
 
     if (!payment) {
       throw new NotFoundException('Pago no encontrado.');
     }
   }
 
-  private toPaymentResponse(payment: {
-    id: number;
-    citaId: number;
-    usuarioCobradorId: number;
-    metodoPagoId: number;
-    montoPagado: { toString(): string };
-    numeroOperacion: string | null;
-    observacion: string | null;
-    fechaPago: Date;
-    estado: boolean;
-    metodoPago: { nombreMetodo: string };
-    usuarioCobrador: { nombreCompleto: string };
-  }) {
+  private toPaymentResponse(payment: PaymentEntity) {
     return {
       id: String(payment.id),
       appointmentId: String(payment.citaId),
       cashierId: String(payment.usuarioCobradorId),
-      cashierName: payment.usuarioCobrador.nombreCompleto,
+      cashierName: payment.usuarioCobradorName ?? '',
       methodId: String(payment.metodoPagoId),
-      methodName: payment.metodoPago.nombreMetodo,
-      amount: Number(payment.montoPagado.toString()),
+      methodName: payment.metodoPagoName ?? '',
+      amount: payment.montoPagado,
       reference: payment.numeroOperacion,
       notes: payment.observacion ?? '',
       paidAt: payment.fechaPago.toISOString(),

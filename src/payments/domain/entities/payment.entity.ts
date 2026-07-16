@@ -1,16 +1,15 @@
-import { PaymentMethodEntity } from './payment-method.entity';
-
 export class PaymentEntity {
-  id?: number;
+  id!: number;
   citaId!: number;
   usuarioCobradorId!: number;
   metodoPagoId!: number;
   montoPagado!: number;
-  numeroOperacion?: string;
-  observacion?: string;
-  fechaPago?: Date;
+  numeroOperacion?: string | null;
+  observacion?: string | null;
+  fechaPago!: Date;
   estado = true;
-  metodoPago?: PaymentMethodEntity;
+  metodoPagoName?: string;
+  usuarioCobradorName?: string;
 
   constructor(partial: Partial<PaymentEntity> = {}) {
     Object.assign(this, partial);

@@ -1,19 +1,18 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PaymentEntity } from '../../domain/entities/payment.entity';
 import {
-  CreatePaymentParams,
   PAYMENTS_REPOSITORY,
   type PaymentsRepository,
 } from '../../domain/repositories/payments.repository';
 
 @Injectable()
-export class CreatePaymentUseCase {
+export class FindPaymentByIdUseCase {
   constructor(
     @Inject(PAYMENTS_REPOSITORY)
     private readonly paymentsRepository: PaymentsRepository,
   ) {}
 
-  execute(payload: CreatePaymentParams): Promise<PaymentEntity> {
-    return this.paymentsRepository.create(payload);
+  execute(id: number): Promise<PaymentEntity | null> {
+    return this.paymentsRepository.findById(id);
   }
 }

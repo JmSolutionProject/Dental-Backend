@@ -77,6 +77,17 @@
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/$1",
+      "^@modules/(.*)$": "<rootDir>/$1",
+      "^@auth/(.*)$": "<rootDir>/auth/$1",
+      "^@patients/(.*)$": "<rootDir>/patients/$1",
+      "^@appointments/(.*)$": "<rootDir>/appointments/$1",
+      "^@messages/(.*)$": "<rootDir>/messages/$1",
+      "^@catalog/(.*)$": "<rootDir>/catalog/$1",
+      "^@config/(.*)$": "<rootDir>/config/$1",
+      "^@shared/(.*)$": "<rootDir>/shared/$1"
+    },
     "collectCoverageFrom": [
       "**/*.(t|j)s"
     ],
