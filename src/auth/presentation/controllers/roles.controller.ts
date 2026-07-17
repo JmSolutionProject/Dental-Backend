@@ -18,6 +18,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@auth/infrastructure/guards/jwt-auth.guard';
+import { RolesGuard } from '@auth/infrastructure/guards/roles.guard';
+import { Roles } from '@auth/presentation/decorators/roles.decorator';
 import { RolCreateUseCase } from '@auth/application/use-cases/rol/rol-create.use-case';
 import { RolListUseCase } from '@auth/application/use-cases/rol/rol-list.use-case';
 import { CreateRolRequestDto } from '@auth/presentation/dtos/request/create-rol.request.dto';
@@ -27,7 +29,8 @@ import { RolPresentationMapper } from '@auth/presentation/mappers/rol-presentati
 import { PrismaService } from '@shared/infrastructure/persistence/prisma/prisma.service';
 
 @ApiTags('roles')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('ADMIN')
 @Controller('roles')
 export class RolesController {
   constructor(

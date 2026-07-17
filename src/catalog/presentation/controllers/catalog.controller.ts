@@ -18,13 +18,15 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@auth/infrastructure/guards/jwt-auth.guard';
+import { RolesGuard } from '@auth/infrastructure/guards/roles.guard';
+import { Roles } from '@auth/presentation/decorators/roles.decorator';
 import { PrismaService } from '@shared/infrastructure/persistence/prisma/prisma.service';
 import { CreateCatalogUseCase } from '../../application/use-cases/create-catalog.use-case';
 import { CreateServiceRequestDto } from '../dtos/request/create-service.request.dto';
 import { UpdateServiceRequestDto } from '../dtos/request/update-service.request.dto';
 
 @ApiTags('catalog')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('catalog')
 export class CatalogController {
   constructor(
@@ -33,6 +35,7 @@ export class CatalogController {
   ) {}
 
   @Get('services')
+  @Roles('ADMIN', 'SECRETARIA', 'MEDICO')
   @ApiOperation({ summary: 'Listar servicios del catalogo' })
   @ApiBearerAuth()
   @ApiOkResponse()
@@ -61,6 +64,7 @@ export class CatalogController {
   }
 
   @Get('services/:id')
+  @Roles('ADMIN', 'SECRETARIA', 'MEDICO')
   @ApiOperation({ summary: 'Obtener servicio por id' })
   @ApiBearerAuth()
   @ApiOkResponse()
@@ -81,6 +85,7 @@ export class CatalogController {
   }
 
   @Post('services')
+  @Roles('ADMIN')
   @ApiOperation({ summary: 'Crear un servicio dentro del catalogo' })
   @ApiBearerAuth()
   @ApiCreatedResponse()
@@ -89,6 +94,7 @@ export class CatalogController {
   }
 
   @Put('services/:id')
+  @Roles('ADMIN')
   @ApiOperation({ summary: 'Actualizar servicio del catalogo' })
   @ApiBearerAuth()
   @ApiOkResponse()
@@ -123,6 +129,7 @@ export class CatalogController {
   }
 
   @Delete('services/:id')
+  @Roles('ADMIN')
   @ApiOperation({ summary: 'Eliminar servicio del catalogo' })
   @ApiBearerAuth()
   @ApiOkResponse()

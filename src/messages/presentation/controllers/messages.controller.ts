@@ -18,13 +18,15 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@auth/infrastructure/guards/jwt-auth.guard';
+import { RolesGuard } from '@auth/infrastructure/guards/roles.guard';
+import { Roles } from '@auth/presentation/decorators/roles.decorator';
 import { PrismaService } from '@shared/infrastructure/persistence/prisma/prisma.service';
 import { CreateMessageUseCase } from '../../application/use-cases/create-message.use-case';
 import { CreateMessageRequestDto } from '../dtos/request/create-message.request.dto';
 import { UpdateMessageRequestDto } from '../dtos/request/update-message.request.dto';
 
 @ApiTags('messages')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('messages')
 export class MessagesController {
   constructor(
@@ -33,6 +35,7 @@ export class MessagesController {
   ) {}
 
   @Get()
+  @Roles('ADMIN', 'SECRETARIA')
   @ApiOperation({ summary: 'Listar mensajes' })
   @ApiBearerAuth()
   @ApiOkResponse()
@@ -63,6 +66,7 @@ export class MessagesController {
   }
 
   @Get(':id')
+  @Roles('ADMIN', 'SECRETARIA')
   @ApiOperation({ summary: 'Obtener mensaje por id' })
   @ApiBearerAuth()
   @ApiOkResponse()
@@ -85,6 +89,7 @@ export class MessagesController {
   }
 
   @Post()
+  @Roles('ADMIN', 'SECRETARIA')
   @ApiOperation({ summary: 'Registrar un mensaje' })
   @ApiBearerAuth()
   @ApiCreatedResponse()
@@ -93,6 +98,7 @@ export class MessagesController {
   }
 
   @Put(':id')
+  @Roles('ADMIN', 'SECRETARIA')
   @ApiOperation({ summary: 'Actualizar mensaje' })
   @ApiBearerAuth()
   @ApiOkResponse()
@@ -123,6 +129,7 @@ export class MessagesController {
   }
 
   @Delete(':id')
+  @Roles('ADMIN', 'SECRETARIA')
   @ApiOperation({ summary: 'Eliminar mensaje' })
   @ApiBearerAuth()
   @ApiOkResponse()

@@ -18,6 +18,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@auth/infrastructure/guards/jwt-auth.guard';
+import { RolesGuard } from '@auth/infrastructure/guards/roles.guard';
+import { Roles } from '@auth/presentation/decorators/roles.decorator';
 import { CreatePatientUseCase } from '../../application/use-cases/create-patient.use-case';
 import { FindAllPatientsUseCase } from '../../application/use-cases/find-all-patients.use-case';
 import { FindPatientByIdUseCase } from '../../application/use-cases/find-patient-by-id.use-case';
@@ -56,7 +58,7 @@ interface ReniecApiResponse {
 }
 
 @ApiTags('patients')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('patients')
 export class PatientsController {
   constructor(
@@ -68,6 +70,7 @@ export class PatientsController {
   ) {}
 
   @Get('reniec/:dni')
+  @Roles('ADMIN', 'SECRETARIA', 'MEDICO')
   @ApiOperation({ summary: 'Consultar datos de RENIEC por DNI' })
   @ApiBearerAuth()
   async lookupReniec(@Param('dni') dni: string) {
@@ -135,6 +138,7 @@ export class PatientsController {
   }
 
   @Get()
+  @Roles('ADMIN', 'SECRETARIA', 'MEDICO')
   @ApiOperation({ summary: 'Listar pacientes paginados' })
   @ApiBearerAuth()
   @ApiOkResponse()
@@ -165,6 +169,7 @@ export class PatientsController {
   }
 
   @Get(':id')
+  @Roles('ADMIN', 'SECRETARIA', 'MEDICO')
   @ApiOperation({ summary: 'Ver detalle de paciente' })
   @ApiBearerAuth()
   @ApiOkResponse()
@@ -179,6 +184,7 @@ export class PatientsController {
   }
 
   @Post()
+  @Roles('ADMIN', 'SECRETARIA')
   @ApiOperation({ summary: 'Crear un paciente' })
   @ApiBearerAuth()
   @ApiCreatedResponse()
@@ -198,6 +204,7 @@ export class PatientsController {
   }
 
   @Put(':id')
+  @Roles('ADMIN', 'SECRETARIA')
   @ApiOperation({ summary: 'Actualizar datos del paciente' })
   @ApiBearerAuth()
   @ApiOkResponse()
@@ -220,6 +227,7 @@ export class PatientsController {
   }
 
   @Delete(':id')
+  @Roles('ADMIN', 'SECRETARIA')
   @ApiOperation({ summary: 'Eliminar paciente' })
   @ApiBearerAuth()
   @ApiOkResponse()

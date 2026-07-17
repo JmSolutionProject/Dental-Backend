@@ -9,6 +9,7 @@ import { RolListUseCase } from '@auth/application/use-cases/rol/rol-list.use-cas
 import { AUTH_REPOSITORY } from '@auth/domain/repositories/auth.repository';
 import { ROL_REPOSITORY } from '@auth/domain/repositories/rol_auth.repository';
 import { JwtAuthGuard } from '@auth/infrastructure/guards/jwt-auth.guard';
+import { RolesGuard } from '@auth/infrastructure/guards/roles.guard';
 import { PrismaAuthRepository } from '@auth/infrastructure/persistence/prisma-auth.repository';
 import { PrismaRol } from '@auth/infrastructure/persistence/prisma-rol.repository';
 import { AuthController } from '@auth/presentation/controllers/auth.controller';
@@ -40,6 +41,7 @@ const jwtExpiresIn = Number(process.env.JWT_EXPIRES_IN ?? 86400);
     RolCreateUseCase,
     RolListUseCase,
     JwtAuthGuard,
+    RolesGuard,
     {
       provide: AUTH_REPOSITORY,
       useClass: PrismaAuthRepository,

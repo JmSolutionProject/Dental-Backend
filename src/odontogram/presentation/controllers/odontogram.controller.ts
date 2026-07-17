@@ -20,6 +20,8 @@ import {
 } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { JwtAuthGuard } from '@auth/infrastructure/guards/jwt-auth.guard';
+import { RolesGuard } from '@auth/infrastructure/guards/roles.guard';
+import { Roles } from '@auth/presentation/decorators/roles.decorator';
 import { PrismaService } from '@shared/infrastructure/persistence/prisma/prisma.service';
 import { ListDentalPiecesUseCase } from '../../application/use-cases/list-dental-pieces.use-case';
 import { ListDentalSurfacesUseCase } from '../../application/use-cases/list-dental-surfaces.use-case';
@@ -58,10 +60,11 @@ type OdontogramWithDetails = Prisma.OdontogramaGetPayload<{
 }>;
 
 @ApiTags('Odontogram')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('odontogram')
 export class OdontogramController {
   @Get('teeth')
+  @Roles('ADMIN', 'MEDICO')
   @ApiOperation({ summary: 'Lista el catalogo base de piezas dentales.' })
   @ApiOkResponse({ type: DentalPieceResponseDto, isArray: true })
   @ApiBearerAuth()
@@ -70,6 +73,7 @@ export class OdontogramController {
   }
 
   @Get('surfaces')
+  @Roles('ADMIN', 'MEDICO')
   @ApiOperation({ summary: 'Lista las superficies dentales disponibles.' })
   @ApiOkResponse({ type: DentalSurfaceResponseDto, isArray: true })
   @ApiBearerAuth()
@@ -78,6 +82,7 @@ export class OdontogramController {
   }
 
   @Get('states')
+  @Roles('ADMIN', 'MEDICO')
   @ApiOperation({
     summary: 'Lista los estados clinicos disponibles para una pieza dental.',
   })
@@ -88,6 +93,7 @@ export class OdontogramController {
   }
 
   @Get('details')
+  @Roles('ADMIN', 'SECRETARIA', 'MEDICO')
   @ApiOperation({ summary: 'Listar detalles de odontograma' })
   @ApiBearerAuth()
   @ApiOkResponse()
@@ -122,6 +128,7 @@ export class OdontogramController {
   }
 
   @Get('details/by-patient/:patientId')
+  @Roles('ADMIN', 'SECRETARIA', 'MEDICO')
   @ApiOperation({ summary: 'Listar detalles del odontograma de un paciente' })
   @ApiBearerAuth()
   @ApiOkResponse()
@@ -147,6 +154,7 @@ export class OdontogramController {
   }
 
   @Get('details/:id')
+  @Roles('ADMIN', 'SECRETARIA', 'MEDICO')
   @ApiOperation({ summary: 'Obtener detalle de odontograma por id' })
   @ApiBearerAuth()
   @ApiOkResponse()
@@ -169,6 +177,7 @@ export class OdontogramController {
   }
 
   @Post('details')
+  @Roles('ADMIN', 'MEDICO')
   @ApiOperation({
     summary: 'Registra un detalle dentro del odontograma del paciente.',
   })
@@ -196,7 +205,8 @@ export class OdontogramController {
     });
     const data = {
       estadoPiezaId: state.id,
-      diagnostico: payload.diagnostico ?? payload.condition ?? state.nombreEstado,
+      diagnostico:
+        payload.diagnostico ?? payload.condition ?? state.nombreEstado,
       tratamientoRecomendado: payload.tratamientoRecomendado,
       observacion: payload.observacion ?? payload.notes,
       superficieId: surface?.id ?? null,
@@ -231,6 +241,7 @@ export class OdontogramController {
   }
 
   @Put('details/:id')
+  @Roles('ADMIN', 'MEDICO')
   @ApiOperation({ summary: 'Actualizar detalle de odontograma' })
   @ApiBearerAuth()
   @ApiOkResponse()
@@ -257,6 +268,7 @@ export class OdontogramController {
   }
 
   @Delete('details/:id')
+  @Roles('ADMIN', 'MEDICO')
   @ApiOperation({ summary: 'Eliminar detalle de odontograma' })
   @ApiBearerAuth()
   @ApiOkResponse()
@@ -330,7 +342,9 @@ export class OdontogramController {
     });
   }
 
-  private async resolveDentalPiece(payload: RegisterOdontogramDetailRequestDto) {
+  private async resolveDentalPiece(
+    payload: RegisterOdontogramDetailRequestDto,
+  ) {
     if (payload.piezaDentalId) {
       const piece = await this.prisma.piezaDental.findUnique({
         where: { id: payload.piezaDentalId },
@@ -412,7 +426,9 @@ export class OdontogramController {
     const existing = await this.prisma.superficieDental.findFirst({
       where: {
         OR: [
-          { nombreSuperficie: { equals: payload.surface, mode: 'insensitive' } },
+          {
+            nombreSuperficie: { equals: payload.surface, mode: 'insensitive' },
+          },
           { abreviatura: { equals: payload.surface, mode: 'insensitive' } },
         ],
       },
@@ -512,12 +528,13 @@ export class OdontogramController {
 }
 
 @ApiTags('Odontograms')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('odontograms')
 export class PatientOdontogramsController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
+  @Roles('ADMIN', 'SECRETARIA', 'MEDICO')
   @ApiOperation({ summary: 'Listar odontogramas paginados' })
   @ApiBearerAuth()
   @ApiOkResponse()
@@ -552,6 +569,7 @@ export class PatientOdontogramsController {
   }
 
   @Post()
+  @Roles('ADMIN', 'MEDICO')
   @ApiOperation({ summary: 'Crear odontograma de paciente' })
   @ApiBearerAuth()
   @ApiCreatedResponse()
@@ -582,6 +600,7 @@ export class PatientOdontogramsController {
   }
 
   @Get(':patientId')
+  @Roles('ADMIN', 'SECRETARIA', 'MEDICO')
   @ApiOperation({ summary: 'Obtener odontograma completo del paciente' })
   @ApiBearerAuth()
   @ApiOkResponse()
@@ -604,6 +623,7 @@ export class PatientOdontogramsController {
   }
 
   @Put(':patientId')
+  @Roles('ADMIN', 'MEDICO')
   @ApiOperation({ summary: 'Actualizar una pieza dental del paciente' })
   @ApiBearerAuth()
   @ApiOkResponse()
@@ -657,6 +677,7 @@ export class PatientOdontogramsController {
   }
 
   @Delete(':patientId')
+  @Roles('ADMIN')
   @ApiOperation({ summary: 'Eliminar odontogramas de un paciente' })
   @ApiBearerAuth()
   @ApiOkResponse()

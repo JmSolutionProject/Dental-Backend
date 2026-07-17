@@ -53,7 +53,6 @@ export class AuthMapper {
       sub: authenticatedUser.id,
       ...authenticatedUser,
       role: primaryRole,
-      clinicId: '', // kept empty until the user model supports clinics
       name: authenticatedUser.nombreCompleto,
     };
   }

@@ -8,6 +8,8 @@ import { AppointmentsModule } from './appointments/appointments.module';
 import { MessagesModule } from './messages/messages.module';
 import { PaymentsModule } from './payments/payments.module';
 import { OdontogramModule } from './odontogram/odontogram.module';
+import { DashboardModule } from './dashboard/dashboard.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { OdontogramModule } from './odontogram/odontogram.module';
     PaymentsModule,
     MessagesModule,
     OdontogramModule,
+    DashboardModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

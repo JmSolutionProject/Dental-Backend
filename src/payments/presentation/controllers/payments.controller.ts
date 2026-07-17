@@ -18,6 +18,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@auth/infrastructure/guards/jwt-auth.guard';
+import { RolesGuard } from '@auth/infrastructure/guards/roles.guard';
+import { Roles } from '@auth/presentation/decorators/roles.decorator';
 import { CreatePaymentUseCase } from '../../application/use-cases/create-payment.use-case';
 import { FindAllPaymentsUseCase } from '../../application/use-cases/find-all-payments.use-case';
 import { FindPaymentByIdUseCase } from '../../application/use-cases/find-payment-by-id.use-case';
@@ -28,7 +30,7 @@ import { CreatePaymentRequestDto } from '../dtos/request/create-payment.request.
 import { UpdatePaymentRequestDto } from '../dtos/request/update-payment.request.dto';
 
 @ApiTags('payments')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('payments')
 export class PaymentsController {
   constructor(
@@ -40,6 +42,7 @@ export class PaymentsController {
   ) {}
 
   @Get()
+  @Roles('ADMIN', 'SECRETARIA')
   @ApiOperation({ summary: 'Listar pagos' })
   @ApiBearerAuth()
   @ApiOkResponse()
@@ -58,6 +61,7 @@ export class PaymentsController {
   }
 
   @Get(':id')
+  @Roles('ADMIN', 'SECRETARIA')
   @ApiOperation({ summary: 'Obtener pago por id' })
   @ApiBearerAuth()
   @ApiOkResponse()
@@ -72,6 +76,7 @@ export class PaymentsController {
   }
 
   @Post()
+  @Roles('ADMIN', 'SECRETARIA')
   @ApiOperation({ summary: 'Registrar un pago' })
   @ApiBearerAuth()
   @ApiCreatedResponse()
@@ -90,6 +95,7 @@ export class PaymentsController {
   }
 
   @Put(':id')
+  @Roles('ADMIN', 'SECRETARIA')
   @ApiOperation({ summary: 'Actualizar pago' })
   @ApiBearerAuth()
   @ApiOkResponse()
@@ -113,6 +119,7 @@ export class PaymentsController {
   }
 
   @Delete(':id')
+  @Roles('ADMIN')
   @ApiOperation({ summary: 'Eliminar pago' })
   @ApiBearerAuth()
   @ApiOkResponse()

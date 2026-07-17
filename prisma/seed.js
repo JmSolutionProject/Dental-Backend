@@ -7,54 +7,79 @@ const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:admi
 const adapter = new PrismaPg({ connectionString });
 const prisma = new PrismaClient({ adapter });
 
+async function ensureRole(nombreRol) {
+  let role = await prisma.role.findFirst({ where: { nombreRol } });
+  if (!role) {
+    role = await prisma.role.create({ data: { nombreRol, estado: true } });
+    console.log(`  Created role: ${nombreRol}`);
+  }
+  return role;
+}
+
+async function ensureUser(email, nombreCompleto, hash) {
+  let user = await prisma.usuario.findUnique({ where: { email } });
+  if (!user) {
+    user = await prisma.usuario.create({
+      data: { nombreCompleto, email, passwordHash: hash, estado: true },
+    });
+    console.log(`  Created user: ${email}`);
+  } else {
+    await prisma.usuario.update({
+      where: { email },
+      data: { passwordHash: hash, nombreCompleto },
+    });
+    console.log(`  Updated user: ${email}`);
+  }
+  return user;
+}
+
+async function assignRole(user, role) {
+  const existing = await prisma.usuarioRol.findFirst({
+    where: { usuarioId: user.id, rolId: role.id },
+  });
+  if (!existing) {
+    await prisma.usuarioRol.create({
+      data: { usuarioId: user.id, rolId: role.id },
+    });
+    console.log(`  Assigned role ${role.nombreRol} to ${user.email}`);
+  }
+}
+
 async function main() {
   const hash = await bcrypt.hash('123456', 10);
 
-  // Ensure both ADMIN and admin roles exist
-  let roleAdminUpper = await prisma.role.findFirst({ where: { nombreRol: 'ADMIN' } });
-  if (!roleAdminUpper) {
-    roleAdminUpper = await prisma.role.create({ data: { nombreRol: 'ADMIN', estado: true } });
-  }
+  console.log('Ensuring roles...');
+  const roleAdmin = await ensureRole('ADMIN');
+  const roleSecre = await ensureRole('SECRETARIA');
+  const roleMedico = await ensureRole('MEDICO');
 
-  let roleAdminLower = await prisma.role.findFirst({ where: { nombreRol: 'admin' } });
-  if (!roleAdminLower) {
-    roleAdminLower = await prisma.role.create({ data: { nombreRol: 'admin', estado: true } });
-  }
+  console.log('\nEnsuring users...');
+  const adminUser = await ensureUser(
+    'admin@admin.com',
+    'Administrador Principal',
+    hash,
+  );
+  const secreUser = await ensureUser(
+    'secre@clinica.com',
+    'Secretaria Recepcionista',
+    hash,
+  );
+  const medicoUser = await ensureUser(
+    'medico@clinica.com',
+    'Doctor Dentista',
+    hash,
+  );
 
-  const emails = ['admin@admin.com', 'admin@clinica.com'];
-  for (const email of emails) {
-    let user = await prisma.usuario.findUnique({ where: { email } });
-    if (!user) {
-      user = await prisma.usuario.create({
-        data: {
-          nombreCompleto: 'Administrador Principal',
-          email,
-          passwordHash: hash,
-          estado: true,
-        },
-      });
-    } else {
-      await prisma.usuario.update({
-        where: { email },
-        data: { passwordHash: hash },
-      });
-    }
+  console.log('\nAssigning roles...');
+  await assignRole(adminUser, roleAdmin);
+  await assignRole(secreUser, roleSecre);
+  await assignRole(medicoUser, roleMedico);
 
-    // Connect both roles to the user
-    for (const role of [roleAdminUpper, roleAdminLower]) {
-      const existingUserRole = await prisma.usuarioRol.findFirst({
-        where: { usuarioId: user.id, rolId: role.id },
-      });
-      if (!existingUserRole) {
-        await prisma.usuarioRol.create({
-          data: { usuarioId: user.id, rolId: role.id },
-        });
-      }
-    }
-    console.log(`Roles updated for: ${email}`);
-  }
-
-  console.log('SEED COMPLETE');
+  console.log('\n--- CREDENCIALES DE PRUEBA ---');
+  console.log('  ADMIN:      admin@admin.com / 123456');
+  console.log('  SECRETARIA: secre@clinica.com / 123456');
+  console.log('  MEDICO:     medico@clinica.com / 123456');
+  console.log('---');
 }
 
 main()

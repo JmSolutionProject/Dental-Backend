@@ -18,6 +18,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@auth/infrastructure/guards/jwt-auth.guard';
+import { RolesGuard } from '@auth/infrastructure/guards/roles.guard';
+import { Roles } from '@auth/presentation/decorators/roles.decorator';
 import { CancelAppointmentUseCase } from '../../application/use-cases/cancel-appointment.use-case';
 import { CheckAvailabilityUseCase } from '../../application/use-cases/check-availability.use-case';
 import { CreateAppointmentUseCase } from '../../application/use-cases/create-appointment.use-case';
@@ -42,7 +44,7 @@ type AppointmentResponse = {
 };
 
 @ApiTags('appointments')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('appointments')
 export class AppointmentsController {
   constructor(
@@ -55,6 +57,7 @@ export class AppointmentsController {
   ) {}
 
   @Get('availability')
+  @Roles('ADMIN', 'SECRETARIA', 'MEDICO')
   @ApiOperation({ summary: 'Validar disponibilidad antes de crear cita' })
   @ApiBearerAuth()
   @ApiOkResponse()
@@ -78,6 +81,7 @@ export class AppointmentsController {
   }
 
   @Get()
+  @Roles('ADMIN', 'SECRETARIA', 'MEDICO')
   @ApiOperation({ summary: 'Listar citas' })
   @ApiBearerAuth()
   @ApiOkResponse()
@@ -101,6 +105,7 @@ export class AppointmentsController {
   }
 
   @Get(':id')
+  @Roles('ADMIN', 'SECRETARIA', 'MEDICO')
   @ApiOperation({ summary: 'Ver detalle de cita' })
   @ApiBearerAuth()
   @ApiOkResponse()
@@ -117,6 +122,7 @@ export class AppointmentsController {
   }
 
   @Post()
+  @Roles('ADMIN', 'SECRETARIA')
   @ApiOperation({ summary: 'Crear una cita' })
   @ApiBearerAuth()
   @ApiCreatedResponse()
@@ -137,6 +143,7 @@ export class AppointmentsController {
   }
 
   @Put(':id')
+  @Roles('ADMIN', 'SECRETARIA')
   @ApiOperation({ summary: 'Actualizar cita' })
   @ApiBearerAuth()
   @ApiOkResponse()
@@ -163,6 +170,7 @@ export class AppointmentsController {
   }
 
   @Delete(':id')
+  @Roles('ADMIN', 'SECRETARIA')
   @ApiOperation({ summary: 'Cancelar cita' })
   @ApiBearerAuth()
   @ApiOkResponse()
