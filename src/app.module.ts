@@ -10,9 +10,12 @@ import { PaymentsModule } from './payments/payments.module';
 import { OdontogramModule } from './odontogram/odontogram.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { UsersModule } from './users/users.module';
+import { PrismaModule } from './shared/infrastructure/persistence/prisma/prisma.module';
+
 
 @Module({
   imports: [
+    PrismaModule,
     AuthModule,
     PatientsModule,
     AppointmentsModule,

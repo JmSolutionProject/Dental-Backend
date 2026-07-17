@@ -8,6 +8,8 @@ export class PrismaService
   extends PrismaClient
   implements OnModuleInit, OnModuleDestroy
 {
+  private connectPromise: Promise<void> | null = null;
+
   constructor() {
     const connectionString = environment.url;
 
@@ -25,7 +27,8 @@ export class PrismaService
   }
 
   async onModuleInit(): Promise<void> {
-    await this.$connect();
+    this.connectPromise ??= this.$connect();
+    await this.connectPromise;
   }
 
   async onModuleDestroy(): Promise<void> {

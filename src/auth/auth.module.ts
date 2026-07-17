@@ -16,13 +16,11 @@ import { AuthController } from '@auth/presentation/controllers/auth.controller';
 import { RolesController } from '@auth/presentation/controllers/roles.controller';
 import { AuthPresentationMapper } from '@auth/presentation/mappers/auth-presentation.mapper';
 import { RolPresentationMapper } from '@auth/presentation/mappers/rol-presentation.mapper';
-import { PrismaModule } from '@shared/infrastructure/persistence/prisma/prisma.module';
 
 const jwtExpiresIn = Number(process.env.JWT_EXPIRES_IN ?? 86400);
 
 @Module({
   imports: [
-    PrismaModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET ?? 'change-me-in-production',
       signOptions: {
