@@ -8,9 +8,11 @@ import { AppointmentsModule } from './appointments/appointments.module';
 import { MessagesModule } from './messages/messages.module';
 import { PaymentsModule } from './payments/payments.module';
 import { OdontogramModule } from './odontogram/odontogram.module';
+import { PrismaModule } from './shared/infrastructure/persistence/prisma/prisma.module';
 
 @Module({
   imports: [
+    PrismaModule,
     AuthModule,
     PatientsModule,
     AppointmentsModule,
