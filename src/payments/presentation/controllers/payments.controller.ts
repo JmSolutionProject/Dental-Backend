@@ -21,12 +21,14 @@ import { JwtAuthGuard } from '@auth/infrastructure/guards/jwt-auth.guard';
 import { RolesGuard } from '@auth/infrastructure/guards/roles.guard';
 import { Roles } from '@auth/presentation/decorators/roles.decorator';
 import { CreatePaymentUseCase } from '../../application/use-cases/create-payment.use-case';
+import { FindAllPaymentMethodsUseCase } from '../../application/use-cases/find-all-payment-methods.use-case';
 import { FindAllPaymentsUseCase } from '../../application/use-cases/find-all-payments.use-case';
 import { FindPaymentByIdUseCase } from '../../application/use-cases/find-payment-by-id.use-case';
 import { SoftDeletePaymentUseCase } from '../../application/use-cases/soft-delete-payment.use-case';
 import { UpdatePaymentUseCase } from '../../application/use-cases/update-payment.use-case';
 import { PaymentEntity } from '../../domain/entities/payment.entity';
 import { CreatePaymentRequestDto } from '../dtos/request/create-payment.request.dto';
+import { ListPaymentsRequestDto } from '../dtos/request/list-payments.request.dto';
 import { UpdatePaymentRequestDto } from '../dtos/request/update-payment.request.dto';
 
 @ApiTags('payments')
@@ -35,6 +37,7 @@ import { UpdatePaymentRequestDto } from '../dtos/request/update-payment.request.
 export class PaymentsController {
   constructor(
     private readonly createPaymentUseCase: CreatePaymentUseCase,
+    private readonly findAllPaymentMethodsUseCase: FindAllPaymentMethodsUseCase,
     private readonly findAllPaymentsUseCase: FindAllPaymentsUseCase,
     private readonly findPaymentByIdUseCase: FindPaymentByIdUseCase,
     private readonly updatePaymentUseCase: UpdatePaymentUseCase,
@@ -46,17 +49,38 @@ export class PaymentsController {
   @ApiOperation({ summary: 'Listar pagos' })
   @ApiBearerAuth()
   @ApiOkResponse()
-  async list(@Query() query: Record<string, string | undefined>) {
+  async list(@Query() query: ListPaymentsRequestDto) {
     const page = this.toPositiveNumber(query.page, 1);
     const limit = Math.min(this.toPositiveNumber(query.limit, 10), 100);
+    const search = query.search?.trim() || undefined;
 
-    const result = await this.findAllPaymentsUseCase.execute({ page, limit });
+    const result = await this.findAllPaymentsUseCase.execute({
+      page,
+      limit,
+      search,
+    });
 
     return {
       data: result.data.map((payment) => this.toPaymentResponse(payment)),
       total: result.total,
       page: result.page,
       limit: result.limit,
+    };
+  }
+
+  @Get('methods')
+  @Roles('ADMIN', 'SECRETARIA')
+  @ApiOperation({ summary: 'Listar métodos de pago' })
+  @ApiBearerAuth()
+  @ApiOkResponse()
+  async listMethods() {
+    const methods = await this.findAllPaymentMethodsUseCase.execute();
+
+    return {
+      data: methods.map((method) => ({
+        id: String(method.id),
+        name: method.nombreMetodo,
+      })),
     };
   }
 
