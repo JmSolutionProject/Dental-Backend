@@ -1,21 +1,5 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Post,
-  Put,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiCreatedResponse,
-  ApiOkResponse,
-  ApiOperation,
-  ApiTags,
-} from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@auth/infrastructure/guards/jwt-auth.guard';
 import { RolesGuard } from '@auth/infrastructure/guards/roles.guard';
 import { Roles } from '@auth/presentation/decorators/roles.decorator';
@@ -44,8 +28,8 @@ export class UsersController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Obtener usuario por ID' })
   @ApiOkResponse({ type: UserResponseDto })
-  findById(@Param('id') id: string) {
-    return this.manageUsers.findById(Number(id));
+  getById(@Param('id', ParseIntPipe) id: number) {
+    return this.manageUsers.findById(id);
   }
 
   @Post()

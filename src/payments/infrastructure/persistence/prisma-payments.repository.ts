@@ -29,15 +29,18 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
   async findAll(
     params: FindAllPaymentsParams,
   ): Promise<PaginatedPaymentsResult> {
-    const { page, limit } = params;
+    const { page, limit, search } = params;
+    const where = this.buildSearchWhere(search);
+
     const [data, total] = await this.prisma.$transaction([
       this.prisma.pago.findMany({
+        where,
         orderBy: { fechaPago: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
         include: { metodoPago: true, usuarioCobrador: true, cita: true },
       }),
-      this.prisma.pago.count(),
+      this.prisma.pago.count({ where }),
     ]);
 
     return {
@@ -55,6 +58,14 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
     });
 
     return payment ? this.toEntity(payment) : null;
+  }
+
+  async findAllMethods() {
+    return this.prisma.metodoPago.findMany({
+      where: { estado: true },
+      orderBy: { nombreMetodo: 'asc' },
+      select: { id: true, nombreMetodo: true },
+    });
   }
 
   async create(payment: CreatePaymentParams): Promise<PaymentEntity> {
@@ -119,5 +130,37 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
       metodoPagoName: payment.metodoPago.nombreMetodo,
       usuarioCobradorName: payment.usuarioCobrador.nombreCompleto,
     });
+  }
+
+  private buildSearchWhere(search?: string): Prisma.PagoWhereInput | undefined {
+    if (!search) return undefined;
+
+    const numericSearch = Number(search);
+    const numericFilters: Prisma.PagoWhereInput[] = Number.isFinite(numericSearch)
+      ? [
+          { id: numericSearch },
+          { citaId: numericSearch },
+          { usuarioCobradorId: numericSearch },
+          { metodoPagoId: numericSearch },
+        ]
+      : [];
+
+    return {
+      OR: [
+        ...numericFilters,
+        { numeroOperacion: { contains: search, mode: 'insensitive' } },
+        { observacion: { contains: search, mode: 'insensitive' } },
+        {
+          metodoPago: {
+            nombreMetodo: { contains: search, mode: 'insensitive' },
+          },
+        },
+        {
+          usuarioCobrador: {
+            nombreCompleto: { contains: search, mode: 'insensitive' },
+          },
+        },
+      ],
+    };
   }
 }

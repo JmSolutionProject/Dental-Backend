@@ -5,6 +5,7 @@ export const PAYMENTS_REPOSITORY = Symbol('PAYMENTS_REPOSITORY');
 export interface FindAllPaymentsParams {
   page: number;
   limit: number;
+  search?: string;
 }
 
 export interface PaginatedPaymentsResult {
@@ -12,6 +13,11 @@ export interface PaginatedPaymentsResult {
   total: number;
   page: number;
   limit: number;
+}
+
+export interface PaymentMethodResult {
+  id: number;
+  nombreMetodo: string;
 }
 
 export interface CreatePaymentParams {
@@ -37,6 +43,7 @@ export interface UpdatePaymentParams {
 export interface PaymentsRepository {
   count(): Promise<number>;
   findAll(params: FindAllPaymentsParams): Promise<PaginatedPaymentsResult>;
+  findAllMethods(): Promise<PaymentMethodResult[]>;
   findById(id: number): Promise<PaymentEntity | null>;
   create(payment: CreatePaymentParams): Promise<PaymentEntity>;
   update(id: number, payment: UpdatePaymentParams): Promise<PaymentEntity>;
