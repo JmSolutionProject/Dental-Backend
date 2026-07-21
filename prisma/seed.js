@@ -45,6 +45,33 @@ async function assignRole(user, role) {
   }
 }
 
+async function ensureCategory(nombreCategoria) {
+  let cat = await prisma.categoriaServicio.findFirst({ where: { nombreCategoria } });
+  if (!cat) {
+    cat = await prisma.categoriaServicio.create({ data: { nombreCategoria, estado: true } });
+    console.log(`  Created category: ${nombreCategoria}`);
+  }
+  return cat;
+}
+
+async function ensurePaymentMethod(nombreMetodo) {
+  let method = await prisma.metodoPago.findFirst({ where: { nombreMetodo } });
+  if (!method) {
+    method = await prisma.metodoPago.create({ data: { nombreMetodo, estado: true } });
+    console.log(`  Created payment method: ${nombreMetodo}`);
+  }
+  return method;
+}
+
+async function ensureEstadoCita(nombreEstado) {
+  let estado = await prisma.estadoCita.findFirst({ where: { nombreEstado } });
+  if (!estado) {
+    estado = await prisma.estadoCita.create({ data: { nombreEstado } });
+    console.log(`  Created estado cita: ${nombreEstado}`);
+  }
+  return estado;
+}
+
 async function main() {
   const hash = await bcrypt.hash('123456', 10);
 
@@ -54,26 +81,34 @@ async function main() {
   const roleMedico = await ensureRole('MEDICO');
 
   console.log('\nEnsuring users...');
-  const adminUser = await ensureUser(
-    'admin@admin.com',
-    'Administrador Principal',
-    hash,
-  );
-  const secreUser = await ensureUser(
-    'secre@clinica.com',
-    'Secretaria Recepcionista',
-    hash,
-  );
-  const medicoUser = await ensureUser(
-    'medico@clinica.com',
-    'Doctor Dentista',
-    hash,
-  );
+  const adminUser = await ensureUser('admin@admin.com', 'Administrador Principal', hash);
+  const secreUser = await ensureUser('secre@clinica.com', 'Secretaria Recepcionista', hash);
+  const medicoUser = await ensureUser('medico@clinica.com', 'Doctor Dentista', hash);
 
   console.log('\nAssigning roles...');
   await assignRole(adminUser, roleAdmin);
   await assignRole(secreUser, roleSecre);
   await assignRole(medicoUser, roleMedico);
+
+  console.log('\nEnsuring categories...');
+  await ensureCategory('Consultas');
+  await ensureCategory('Prevención');
+  await ensureCategory('Restauración');
+  await ensureCategory('Ortodoncia');
+  await ensureCategory('Cirugía');
+
+  console.log('\nEnsuring payment methods...');
+  await ensurePaymentMethod('Efectivo');
+  await ensurePaymentMethod('Tarjeta');
+  await ensurePaymentMethod('Yape / Plin');
+
+  console.log('\nEnsuring estados de cita...');
+  await ensureEstadoCita('Programada');
+  await ensureEstadoCita('Confirmada');
+  await ensureEstadoCita('En curso');
+  await ensureEstadoCita('Finalizada');
+  await ensureEstadoCita('Cancelada');
+  await ensureEstadoCita('No asistio');
 
   console.log('\n--- CREDENCIALES DE PRUEBA ---');
   console.log('  ADMIN:      admin@admin.com / 123456');

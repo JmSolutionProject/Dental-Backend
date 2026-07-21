@@ -16,8 +16,13 @@ import {
 export class ManageUsersUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(): Promise<UserWithRoles[]> {
+  async findAll(roleName?: string): Promise<UserWithRoles[]> {
+    const where: Record<string, unknown> = { estado: true };
+    if (roleName) {
+      where.roles = { some: { rol: { nombreRol: roleName, estado: true } } };
+    }
     const users = await this.prisma.usuario.findMany({
+      where,
       orderBy: { id: 'asc' },
       include: { roles: { include: { rol: true } } },
     });
@@ -27,6 +32,7 @@ export class ManageUsersUseCase {
       nombreCompleto: u.nombreCompleto,
       email: u.email,
       estado: u.estado,
+      porcentajeComision: Number(u.porcentajeComision ?? 0),
       roles: u.roles
         .filter((ur) => ur.rol.estado)
         .map((ur) => ({ id: ur.rol.id, nombreRol: ur.rol.nombreRol })),
@@ -47,6 +53,7 @@ export class ManageUsersUseCase {
       nombreCompleto: user.nombreCompleto,
       email: user.email,
       estado: user.estado,
+      porcentajeComision: Number(user.porcentajeComision ?? 0),
       roles: user.roles
         .filter((ur) => ur.rol.estado)
         .map((ur) => ({ id: ur.rol.id, nombreRol: ur.rol.nombreRol })),
@@ -62,7 +69,8 @@ export class ManageUsersUseCase {
 
     for (const roleId of cmd.roleIds) {
       const role = await this.prisma.role.findUnique({ where: { id: roleId } });
-      if (!role) throw new BadRequestException(`Rol con ID ${roleId} no existe.`);
+      if (!role)
+        throw new BadRequestException(`Rol con ID ${roleId} no existe.`);
     }
 
     const passwordHash = await bcrypt.hash(cmd.password, 10);
@@ -72,6 +80,7 @@ export class ManageUsersUseCase {
         nombreCompleto: cmd.nombreCompleto,
         email: cmd.email,
         passwordHash,
+        porcentajeComision: cmd.porcentajeComision ?? 0,
         estado: true,
         roles: { create: cmd.roleIds.map((roleId) => ({ rolId: roleId })) },
       },
@@ -83,7 +92,11 @@ export class ManageUsersUseCase {
       nombreCompleto: user.nombreCompleto,
       email: user.email,
       estado: user.estado,
-      roles: user.roles.map((ur) => ({ id: ur.rol.id, nombreRol: ur.rol.nombreRol })),
+      porcentajeComision: Number(user.porcentajeComision ?? 0),
+      roles: user.roles.map((ur) => ({
+        id: ur.rol.id,
+        nombreRol: ur.rol.nombreRol,
+      })),
       fechaRegistro: user.fechaRegistro.toISOString(),
     };
   }
@@ -101,19 +114,25 @@ export class ManageUsersUseCase {
 
     const data: Record<string, unknown> = {};
 
-    if (cmd.nombreCompleto !== undefined) data.nombreCompleto = cmd.nombreCompleto;
+    if (cmd.nombreCompleto !== undefined)
+      data.nombreCompleto = cmd.nombreCompleto;
     if (cmd.email !== undefined) data.email = cmd.email;
-    if (cmd.password !== undefined) {
+    if (cmd.password !== undefined && cmd.password !== '') {
       data.passwordHash = await bcrypt.hash(cmd.password, 10);
     }
     if (cmd.estado !== undefined) data.estado = cmd.estado;
+    if (cmd.porcentajeComision !== undefined)
+      data.porcentajeComision = cmd.porcentajeComision;
 
     if (cmd.roleIds !== undefined) {
       await this.prisma.usuarioRol.deleteMany({ where: { usuarioId: id } });
 
       for (const roleId of cmd.roleIds) {
-        const role = await this.prisma.role.findUnique({ where: { id: roleId } });
-        if (!role) throw new BadRequestException(`Rol con ID ${roleId} no existe.`);
+        const role = await this.prisma.role.findUnique({
+          where: { id: roleId },
+        });
+        if (!role)
+          throw new BadRequestException(`Rol con ID ${roleId} no existe.`);
       }
 
       await this.prisma.usuarioRol.createMany({

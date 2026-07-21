@@ -1,5 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import {
+  IsArray,
+  IsEmail,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
 
 export class CreateUserRequestDto {
   @ApiProperty({ example: 'Juan Perez' })
@@ -19,4 +27,13 @@ export class CreateUserRequestDto {
   @ApiProperty({ example: [2], description: 'IDs de roles a asignar' })
   @IsArray()
   roleIds: number[];
+
+  @ApiProperty({
+    example: 35.0,
+    description: 'Porcentaje de comisión por tratamiento',
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  porcentajeComision?: number;
 }

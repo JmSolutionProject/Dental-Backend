@@ -17,6 +17,13 @@ type AppointmentWithRelations = Prisma.CitaGetPayload<{
     paciente: true;
     medico: true;
     estadoCita: true;
+    servicios: {
+      include: {
+        servicio: {
+          include: { precios: { orderBy: { fechaInicio: 'desc' }, take: 1 } };
+        };
+      };
+    };
   };
 }>;
 
@@ -41,6 +48,13 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
           paciente: true,
           medico: true,
           estadoCita: true,
+          servicios: {
+            include: {
+              servicio: {
+                include: { precios: { orderBy: { fechaInicio: 'desc' }, take: 1 } },
+              },
+            },
+          },
         },
       }),
       this.prisma.cita.count(),
@@ -61,6 +75,13 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
         paciente: true,
         medico: true,
         estadoCita: true,
+        servicios: {
+          include: {
+            servicio: {
+              include: { precios: { orderBy: { fechaInicio: 'desc' }, take: 1 } },
+            },
+          },
+        },
       },
     });
 
@@ -70,22 +91,48 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
   async create(
     appointment: CreateAppointmentParams,
   ): Promise<AppointmentEntity> {
-    const created = await this.prisma.cita.create({
-      data: {
-        pacienteId: appointment.pacienteId,
-        medicoId: appointment.medicoId,
-        estadoCitaId: appointment.estadoCitaId,
-        fechaHoraInicio: new Date(appointment.fechaHoraInicio),
-        fechaHoraFin: new Date(appointment.fechaHoraFin),
-        motivoPrincipal: appointment.motivoPrincipal,
-        observaciones: appointment.observaciones,
-      },
-      include: {
-        paciente: true,
-        medico: true,
-        estadoCita: true,
-      },
+    const created = await this.prisma.$transaction(async (tx) => {
+      const cita = await tx.cita.create({
+        data: {
+          pacienteId: appointment.pacienteId,
+          medicoId: appointment.medicoId,
+          estadoCitaId: appointment.estadoCitaId,
+          planServicioId: appointment.planServicioId ?? null,
+          fechaHoraInicio: new Date(appointment.fechaHoraInicio),
+          fechaHoraFin: new Date(appointment.fechaHoraFin),
+          motivoPrincipal: appointment.motivoPrincipal,
+          observaciones: appointment.observaciones,
+          servicios: appointment.servicios?.length
+            ? {
+                create: appointment.servicios.map((s) => ({
+                  servicioId: s.servicioId,
+                  cantidad: s.cantidad,
+                  descuento: s.descuento ?? 0,
+                })),
+              }
+            : undefined,
+        },
+        include: {
+          paciente: true,
+          medico: true,
+          estadoCita: true,
+          servicios: {
+            include: {
+              servicio: {
+                include: { precios: { orderBy: { fechaInicio: 'desc' }, take: 1 } },
+              },
+            },
+          },
+        },
+      });
+
+      return cita;
     });
+
+    await this.syncPlanServicioStatus(
+      created.planServicioId,
+      created.estadoCitaId,
+    );
 
     return this.toEntity(created);
   }
@@ -100,6 +147,7 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
         pacienteId: appointment.pacienteId,
         medicoId: appointment.medicoId,
         estadoCitaId: appointment.estadoCitaId,
+        planServicioId: appointment.planServicioId,
         fechaHoraInicio: appointment.fechaHoraInicio
           ? new Date(appointment.fechaHoraInicio)
           : undefined,
@@ -113,8 +161,20 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
         paciente: true,
         medico: true,
         estadoCita: true,
+        servicios: {
+          include: {
+            servicio: {
+              include: { precios: { orderBy: { fechaInicio: 'desc' }, take: 1 } },
+            },
+          },
+        },
       },
     });
+
+    await this.syncPlanServicioStatus(
+      updated.planServicioId,
+      updated.estadoCitaId,
+    );
 
     return this.toEntity(updated);
   }
@@ -129,6 +189,13 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
         paciente: true,
         medico: true,
         estadoCita: true,
+        servicios: {
+          include: {
+            servicio: {
+              include: { precios: { orderBy: { fechaInicio: 'desc' }, take: 1 } },
+            },
+          },
+        },
       },
     });
 
@@ -151,6 +218,13 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
         paciente: true,
         medico: true,
         estadoCita: true,
+        servicios: {
+          include: {
+            servicio: {
+              include: { precios: { orderBy: { fechaInicio: 'desc' }, take: 1 } },
+            },
+          },
+        },
       },
     });
 
@@ -168,6 +242,14 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
     });
   }
 
+  async findAllStatuses(): Promise<
+    Array<{ id: number; nombreEstado: string }>
+  > {
+    return this.prisma.estadoCita.findMany({
+      orderBy: { id: 'asc' },
+    });
+  }
+
   async createStatus(
     name: string,
   ): Promise<{ id: number; nombreEstado: string }> {
@@ -181,12 +263,66 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
     return existing ?? (await this.createStatus(name));
   }
 
+  private async syncPlanServicioStatus(
+    planServicioId: number | null,
+    estadoCitaId: number,
+  ) {
+    if (!planServicioId) return;
+
+    const status = await this.prisma.estadoCita.findUnique({
+      where: { id: estadoCitaId },
+    });
+    const isFinalized = status?.nombreEstado === 'Finalizada';
+
+    await this.prisma.planTratamientoServicio.update({
+      where: { id: planServicioId },
+      data: { ejecutado: isFinalized },
+    });
+
+    const planServicio = await this.prisma.planTratamientoServicio.findUnique({
+      where: { id: planServicioId },
+    });
+    if (planServicio?.odontogramaDetalleId) {
+      const targetCondition = isFinalized ? 'restoration' : 'caries';
+      const state =
+        (await this.prisma.estadoPiezaDental.findFirst({
+          where: {
+            nombreEstado: { equals: targetCondition, mode: 'insensitive' },
+          },
+        })) ??
+        (await this.prisma.estadoPiezaDental.create({
+          data: { nombreEstado: targetCondition },
+        }));
+
+      await this.prisma.odontogramaDetalle.update({
+        where: { id: planServicio.odontogramaDetalleId },
+        data: {
+          estadoPiezaId: state.id,
+          diagnostico: isFinalized ? 'Tratado' : 'Caries',
+        },
+      });
+    }
+  }
+
   private toEntity(appointment: AppointmentWithRelations): AppointmentEntity {
+    const servicios =
+      appointment.servicios?.map((s) => ({
+        id: s.id,
+        cantidad: s.cantidad,
+        descuento: Number(s.descuento),
+        servicio: {
+          id: s.servicio.id,
+          nombreServicio: s.servicio.nombreServicio,
+          precio: Number(s.servicio.precios[0]?.precio ?? 0),
+        },
+      })) ?? [];
+
     return new AppointmentEntity({
       id: appointment.id,
       pacienteId: appointment.pacienteId,
       medicoId: appointment.medicoId,
       estadoCitaId: appointment.estadoCitaId,
+      planServicioId: appointment.planServicioId ?? undefined,
       fechaHoraInicio: appointment.fechaHoraInicio,
       fechaHoraFin: appointment.fechaHoraFin,
       motivoPrincipal: appointment.motivoPrincipal ?? undefined,
@@ -195,6 +331,7 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
       pacienteName: `${appointment.paciente.nombres} ${appointment.paciente.apellidos}`,
       medicoName: appointment.medico.nombreCompleto,
       estadoNombre: appointment.estadoCita.nombreEstado,
+      servicios,
     });
   }
 }

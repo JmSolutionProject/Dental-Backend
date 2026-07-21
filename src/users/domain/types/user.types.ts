@@ -3,6 +3,7 @@ export interface UserWithRoles {
   nombreCompleto: string;
   email: string;
   estado: boolean;
+  porcentajeComision: number;
   roles: Array<{ id: number; nombreRol: string }>;
   fechaRegistro: string;
 }
@@ -12,6 +13,7 @@ export interface CreateUserCommand {
   email: string;
   password: string;
   roleIds: number[];
+  porcentajeComision?: number;
 }
 
 export interface UpdateUserCommand {
@@ -20,4 +22,5 @@ export interface UpdateUserCommand {
   password?: string;
   roleIds?: number[];
   estado?: boolean;
+  porcentajeComision?: number;
 }

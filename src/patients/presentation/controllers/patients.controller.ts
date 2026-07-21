@@ -221,6 +221,7 @@ export class PatientsController {
       numeroDocumento: payload.numeroDocumento,
       telefonoWhatsapp: payload.telefonoWhatsapp,
       alergiasCriticas: payload.alergiasCriticas,
+      estado: payload.estado,
     });
 
     return this.toPatientResponse(patient);

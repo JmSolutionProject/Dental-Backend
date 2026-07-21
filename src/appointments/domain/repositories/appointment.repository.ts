@@ -14,20 +14,29 @@ export interface PaginatedAppointmentsResult {
   limit: number;
 }
 
+export interface CreateAppointmentService {
+  servicioId: number;
+  cantidad: number;
+  descuento?: number;
+}
+
 export interface CreateAppointmentParams {
   pacienteId: number;
   medicoId: number;
   estadoCitaId: number;
+  planServicioId?: number;
   fechaHoraInicio: string;
   fechaHoraFin: string;
   motivoPrincipal?: string;
   observaciones?: string;
+  servicios?: CreateAppointmentService[];
 }
 
 export interface UpdateAppointmentParams {
   pacienteId?: number;
   medicoId?: number;
   estadoCitaId?: number;
+  planServicioId?: number;
   fechaHoraInicio?: string;
   fechaHoraFin?: string;
   motivoPrincipal?: string;
@@ -64,4 +73,5 @@ export interface AppointmentRepository {
     name: string,
   ): Promise<{ id: number; nombreEstado: string } | null>;
   createStatus(name: string): Promise<{ id: number; nombreEstado: string }>;
+  findAllStatuses(): Promise<Array<{ id: number; nombreEstado: string }>>;
 }

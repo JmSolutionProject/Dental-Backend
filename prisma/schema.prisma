@@ -21,11 +21,13 @@ model Usuario {
   email           String            @unique @db.VarChar(150)
   passwordHash    String            @map("password_hash") @db.VarChar(255)
   estado          Boolean           @default(true)
+  porcentajeComision Decimal?       @default(0.00) @map("porcentaje_comision") @db.Decimal(5, 2)
   fechaRegistro   DateTime          @default(now()) @map("fecha_registro")
   roles           UsuarioRol[]
   citasMedico     Cita[]            @relation("CitasMedico")
   pagosCobrador   Pago[]            @relation("PagosCobrador")
   campanasCreadas CampanaWhatsapp[] @relation("CampanasCreadas")
+  planesMedico    PlanTratamiento[]
 
   @@map("usuarios")
 }
@@ -55,6 +57,7 @@ model Paciente {
   mensajesEnvio    MensajeEnvio[]
   pacientesCampana CampanaPaciente[]
   odontogramas     Odontograma[]
+  planes           PlanTratamiento[]
 
   @@map("pacientes")
 }
@@ -77,6 +80,7 @@ model Servicio {
   categoria      CategoriaServicio @relation(fields: [categoriaId], references: [id])
   precios        ServicioPrecio[]
   citasServicios CitaServicio[]
+  planes         PlanTratamientoServicio[]
 
   @@map("servicios")
 }
@@ -102,18 +106,20 @@ model EstadoCita {
 }
 
 model Cita {
-  id              Int            @id @default(autoincrement())
-  pacienteId      Int            @map("paciente_id")
-  medicoId        Int            @map("medico_id")
-  estadoCitaId    Int            @map("estado_cita_id")
-  fechaHoraInicio DateTime       @map("fecha_hora_inicio")
-  fechaHoraFin    DateTime       @map("fecha_hora_fin")
-  motivoPrincipal String?        @map("motivo_principal") @db.VarChar(200)
-  observaciones   String?        @db.Text
-  fechaRegistro   DateTime       @default(now()) @map("fecha_registro")
-  paciente        Paciente       @relation(fields: [pacienteId], references: [id])
-  medico          Usuario        @relation("CitasMedico", fields: [medicoId], references: [id])
-  estadoCita      EstadoCita     @relation(fields: [estadoCitaId], references: [id])
+  id              Int                      @id @default(autoincrement())
+  pacienteId      Int                      @map("paciente_id")
+  medicoId        Int                      @map("medico_id")
+  estadoCitaId    Int                      @map("estado_cita_id")
+  planServicioId  Int?                     @map("plan_servicio_id")
+  fechaHoraInicio DateTime                 @map("fecha_hora_inicio")
+  fechaHoraFin    DateTime                 @map("fecha_hora_fin")
+  motivoPrincipal String?                  @map("motivo_principal") @db.VarChar(200)
+  observaciones   String?                  @db.Text
+  fechaRegistro   DateTime                 @default(now()) @map("fecha_registro")
+  paciente        Paciente                 @relation(fields: [pacienteId], references: [id])
+  medico          Usuario                  @relation("CitasMedico", fields: [medicoId], references: [id])
+  estadoCita      EstadoCita               @relation(fields: [estadoCitaId], references: [id])
+  planServicio    PlanTratamientoServicio? @relation(fields: [planServicioId], references: [id])
   servicios       CitaServicio[]
   pagos           Pago[]
   mensajesEnvio   MensajeEnvio[]
@@ -269,18 +275,49 @@ model Odontograma {
 }
 
 model OdontogramaDetalle {
-  id                     Int               @id @default(autoincrement())
-  odontogramaId          Int               @map("odontograma_id")
-  piezaDentalId          Int               @map("pieza_dental_id")
-  superficieId           Int?              @map("superficie_id")
-  estadoPiezaId          Int               @map("estado_pieza_id")
-  diagnostico            String?           @db.Text
-  tratamientoRecomendado String?           @map("tratamiento_recomendado") @db.Text
-  observacion            String?           @db.Text
-  odontograma            Odontograma       @relation(fields: [odontogramaId], references: [id])
-  piezaDental            PiezaDental       @relation(fields: [piezaDentalId], references: [id])
-  superficie             SuperficieDental? @relation(fields: [superficieId], references: [id])
-  estadoPieza            EstadoPiezaDental @relation(fields: [estadoPiezaId], references: [id])
+  id                     Int                      @id @default(autoincrement())
+  odontogramaId          Int                      @map("odontograma_id")
+  piezaDentalId          Int                      @map("pieza_dental_id")
+  superficieId           Int?                     @map("superficie_id")
+  estadoPiezaId          Int                      @map("estado_pieza_id")
+  diagnostico            String?                  @db.Text
+  tratamientoRecomendado String?                  @map("tratamiento_recomendado") @db.Text
+  observacion            String?                  @db.Text
+  odontograma            Odontograma              @relation(fields: [odontogramaId], references: [id])
+  piezaDental            PiezaDental              @relation(fields: [piezaDentalId], references: [id])
+  superficie             SuperficieDental?        @relation(fields: [superficieId], references: [id])
+  estadoPieza            EstadoPiezaDental        @relation(fields: [estadoPiezaId], references: [id])
+  planServicios          PlanTratamientoServicio[]
 
   @@map("odontograma_detalles")
+}
+
+model PlanTratamiento {
+  id            Int                        @id @default(autoincrement())
+  pacienteId    Int                        @map("paciente_id")
+  medicoId      Int                        @map("medico_id")
+  estado        String                     @default("pendiente") @db.VarChar(20)
+  fechaCreacion DateTime                   @default(now()) @map("fecha_creacion")
+  observaciones String?                    @db.Text
+  paciente      Paciente                   @relation(fields: [pacienteId], references: [id])
+  medico        Usuario                    @relation(fields: [medicoId], references: [id])
+  servicios     PlanTratamientoServicio[]
+
+  @@map("planes_tratamiento")
+}
+
+model PlanTratamientoServicio {
+  id                   Int                 @id @default(autoincrement())
+  planId               Int                 @map("plan_id")
+  servicioId           Int                 @map("servicio_id")
+  cantidad             Int                 @default(1)
+  descuento            Decimal             @default(0.00) @db.Decimal(10, 2)
+  ejecutado            Boolean             @default(false)
+  odontogramaDetalleId Int?                @map("odontograma_detalle_id")
+  plan                 PlanTratamiento     @relation(fields: [planId], references: [id])
+  servicio             Servicio            @relation(fields: [servicioId], references: [id])
+  odontogramaDetalle   OdontogramaDetalle? @relation(fields: [odontogramaDetalleId], references: [id])
+  citas                Cita[]
+
+  @@map("plan_tratamiento_servicios")
 }

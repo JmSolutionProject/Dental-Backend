@@ -34,6 +34,76 @@ export class CatalogController {
     private readonly prisma: PrismaService,
   ) {}
 
+  @Get('categories')
+  @Roles('ADMIN', 'SECRETARIA', 'MEDICO')
+  @ApiOperation({ summary: 'Listar categorias del catalogo' })
+  @ApiBearerAuth()
+  @ApiOkResponse()
+  async listCategories() {
+    const categories = await this.prisma.categoriaServicio.findMany({
+      where: { estado: true },
+      orderBy: { nombreCategoria: 'asc' },
+    });
+
+    return categories.map((cat) => ({
+      id: String(cat.id),
+      name: cat.nombreCategoria,
+    }));
+  }
+
+  @Post('categories')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Crear una categoria en el catalogo' })
+  @ApiBearerAuth()
+  @ApiCreatedResponse()
+  async createCategory(@Body() payload: { nombreCategoria: string }) {
+    const category = await this.prisma.categoriaServicio.create({
+      data: {
+        nombreCategoria: payload.nombreCategoria.trim(),
+        estado: true,
+      },
+    });
+
+    return {
+      id: String(category.id),
+      name: category.nombreCategoria,
+    };
+  }
+
+  @Put('categories/:id')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Actualizar una categoria en el catalogo' })
+  @ApiBearerAuth()
+  @ApiOkResponse()
+  async updateCategory(
+    @Param('id') id: string,
+    @Body() payload: { nombreCategoria: string },
+  ) {
+    const category = await this.prisma.categoriaServicio.update({
+      where: { id: Number(id) },
+      data: { nombreCategoria: payload.nombreCategoria.trim() },
+    });
+
+    return {
+      id: String(category.id),
+      name: category.nombreCategoria,
+    };
+  }
+
+  @Delete('categories/:id')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Eliminar una categoria en el catalogo' })
+  @ApiBearerAuth()
+  @ApiOkResponse()
+  async deleteCategory(@Param('id') id: string) {
+    await this.prisma.categoriaServicio.update({
+      where: { id: Number(id) },
+      data: { estado: false },
+    });
+
+    return { success: true };
+  }
+
   @Get('services')
   @Roles('ADMIN', 'SECRETARIA', 'MEDICO')
   @ApiOperation({ summary: 'Listar servicios del catalogo' })
@@ -42,8 +112,14 @@ export class CatalogController {
   async listServices(@Query() query: Record<string, string | undefined>) {
     const page = this.toPositiveNumber(query.page, 1);
     const limit = Math.min(this.toPositiveNumber(query.limit, 10), 100);
+    const whereCondition: Record<string, unknown> = { estado: true };
+    if (query.categoriaId) {
+      whereCondition.categoriaId = Number(query.categoriaId);
+    }
+
     const [data, total] = await this.prisma.$transaction([
       this.prisma.servicio.findMany({
+        where: whereCondition,
         orderBy: { id: 'asc' },
         skip: (page - 1) * limit,
         take: limit,
@@ -52,7 +128,7 @@ export class CatalogController {
           precios: { orderBy: { fechaInicio: 'desc' }, take: 1 },
         },
       }),
-      this.prisma.servicio.count(),
+      this.prisma.servicio.count({ where: whereCondition }),
     ]);
 
     return {

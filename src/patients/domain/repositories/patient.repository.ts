@@ -33,6 +33,7 @@ export interface UpdatePatientParams {
   fechaNacimiento?: string | null;
   telefonoWhatsapp?: string | null;
   alergiasCriticas?: string | null;
+  estado?: boolean;
 }
 
 export interface PatientRepository {

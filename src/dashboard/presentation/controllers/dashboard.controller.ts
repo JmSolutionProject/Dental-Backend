@@ -1,5 +1,10 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '@auth/infrastructure/guards/jwt-auth.guard';
 import { RolesGuard } from '@auth/infrastructure/guards/roles.guard';
 import { Roles } from '@auth/presentation/decorators/roles.decorator';
@@ -20,7 +25,9 @@ export class DashboardController {
   @Get('kpis')
   @Roles('ADMIN', 'SECRETARIA', 'MEDICO')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Obtener KPIs del dashboard según el rol del usuario' })
+  @ApiOperation({
+    summary: 'Obtener KPIs del dashboard según el rol del usuario',
+  })
   @ApiOkResponse({ type: DashboardKpisResponseDto })
   async getKpis(
     @CurrentUser() user: AuthenticatedUser | undefined,

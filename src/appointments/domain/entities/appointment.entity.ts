@@ -11,6 +11,13 @@ export class AppointmentEntity {
   pacienteName?: string;
   medicoName?: string;
   estadoNombre?: string;
+  planServicioId?: number;
+  servicios?: Array<{
+    id: number;
+    cantidad: number;
+    descuento: number;
+    servicio: { id: number; nombreServicio: string; precio: number };
+  }>;
 
   constructor(partial: Partial<AppointmentEntity> = {}) {
     Object.assign(this, partial);

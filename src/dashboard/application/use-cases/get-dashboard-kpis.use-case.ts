@@ -16,7 +16,11 @@ export class GetDashboardKpisUseCase {
     const isMedico = userRoles.some((r) => r.toLowerCase() === 'medico');
 
     const now = new Date();
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfDay = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
     const [
@@ -85,7 +89,11 @@ export class GetDashboardKpisUseCase {
 
   private async countMyAppointmentsToday(userId: number): Promise<number> {
     const now = new Date();
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfDay = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
     const endOfDay = new Date(startOfDay.getTime() + 86400000);
 
     return this.prisma.cita.count({
@@ -96,7 +104,9 @@ export class GetDashboardKpisUseCase {
     });
   }
 
-  private async getTopServices(since: Date): Promise<Array<{ name: string; count: number }>> {
+  private async getTopServices(
+    since: Date,
+  ): Promise<Array<{ name: string; count: number }>> {
     const results = await this.prisma.citaServicio.groupBy({
       by: ['servicioId'],
       where: { cita: { fechaHoraInicio: { gte: since } } },
@@ -120,7 +130,9 @@ export class GetDashboardKpisUseCase {
     }));
   }
 
-  private async getRevenueByMethod(since: Date): Promise<Array<{ method: string; total: number }>> {
+  private async getRevenueByMethod(
+    since: Date,
+  ): Promise<Array<{ method: string; total: number }>> {
     const results = await this.prisma.pago.groupBy({
       by: ['metodoPagoId'],
       where: { fechaPago: { gte: since }, estado: true },

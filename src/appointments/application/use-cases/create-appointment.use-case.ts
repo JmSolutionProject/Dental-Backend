@@ -16,4 +16,8 @@ export class CreateAppointmentUseCase {
   execute(payload: CreateAppointmentParams): Promise<AppointmentEntity> {
     return this.appointmentRepository.create(payload);
   }
+
+  listStatuses(): Promise<Array<{ id: number; nombreEstado: string }>> {
+    return this.appointmentRepository.findAllStatuses();
+  }
 }

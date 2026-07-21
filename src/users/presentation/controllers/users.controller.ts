@@ -1,5 +1,21 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '@auth/infrastructure/guards/jwt-auth.guard';
 import { RolesGuard } from '@auth/infrastructure/guards/roles.guard';
 import { Roles } from '@auth/presentation/decorators/roles.decorator';
@@ -10,20 +26,21 @@ import { UserResponseDto } from '../dtos/response/user.response.dto';
 
 @ApiTags('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('ADMIN')
 @Controller('users')
 export class UsersController {
   constructor(private readonly manageUsers: ManageUsersUseCase) {}
 
   @Get()
+  @Roles('ADMIN', 'SECRETARIA', 'MEDICO')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Listar todos los usuarios con sus roles' })
   @ApiOkResponse({ type: [UserResponseDto] })
-  findAll() {
-    return this.manageUsers.findAll();
+  findAll(@Query('role') role?: string) {
+    return this.manageUsers.findAll(role);
   }
 
   @Get(':id')
+  @Roles('ADMIN', 'SECRETARIA', 'MEDICO')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Obtener usuario por ID' })
   @ApiOkResponse({ type: UserResponseDto })
@@ -32,6 +49,7 @@ export class UsersController {
   }
 
   @Post()
+  @Roles('ADMIN')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Crear un nuevo usuario con roles' })
   @ApiCreatedResponse({ type: UserResponseDto })
@@ -45,6 +63,7 @@ export class UsersController {
   }
 
   @Put(':id')
+  @Roles('ADMIN')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Actualizar usuario' })
   @ApiOkResponse({ type: UserResponseDto })
@@ -59,6 +78,7 @@ export class UsersController {
   }
 
   @Delete(':id')
+  @Roles('ADMIN')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Desactivar usuario (soft delete)' })
   @ApiOkResponse({ type: UserResponseDto })

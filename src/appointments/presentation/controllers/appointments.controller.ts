@@ -31,6 +31,13 @@ import { AppointmentAvailabilityRequestDto } from '../dtos/request/appointment-a
 import { CreateAppointmentRequestDto } from '../dtos/request/create-appointment.request.dto';
 import { UpdateAppointmentRequestDto } from '../dtos/request/update-appointment.request.dto';
 
+type AppointmentServiceResponse = {
+  id: number;
+  cantidad: number;
+  descuento: number;
+  servicio: { id: number; nombreServicio: string; precio: number };
+};
+
 type AppointmentResponse = {
   id: string;
   patientId: string;
@@ -41,6 +48,8 @@ type AppointmentResponse = {
   reason: string;
   status: string;
   cancelReason: string | null;
+  planServicioId?: string;
+  servicios: AppointmentServiceResponse[];
 };
 
 @ApiTags('appointments')
@@ -78,6 +87,17 @@ export class AppointmentsController {
         this.toAppointmentResponse(appointment),
       ),
     };
+  }
+
+  @Get('statuses')
+  @Roles('ADMIN', 'SECRETARIA', 'MEDICO')
+  @ApiOperation({ summary: 'Listar estados de cita disponibles' })
+  @ApiBearerAuth()
+  @ApiOkResponse()
+  async listStatuses() {
+    const statuses = await this.createAppointmentUseCase
+      .listStatuses();
+    return statuses.map((s) => ({ id: s.id, nombre: s.nombreEstado }));
   }
 
   @Get()
@@ -133,10 +153,12 @@ export class AppointmentsController {
       pacienteId: payload.pacienteId,
       medicoId: payload.medicoId,
       estadoCitaId: payload.estadoCitaId,
+      planServicioId: payload.planServicioId,
       fechaHoraInicio: payload.fechaHoraInicio,
       fechaHoraFin: payload.fechaHoraFin,
       motivoPrincipal: payload.motivoPrincipal,
       observaciones: payload.observaciones,
+      servicios: payload.servicios,
     });
 
     return this.toAppointmentResponse(appointment);
@@ -159,6 +181,7 @@ export class AppointmentsController {
         pacienteId: payload.pacienteId,
         medicoId: payload.medicoId,
         estadoCitaId: payload.estadoCitaId,
+        planServicioId: payload.planServicioId,
         fechaHoraInicio: payload.fechaHoraInicio,
         fechaHoraFin: payload.fechaHoraFin,
         motivoPrincipal: payload.motivoPrincipal,
@@ -206,6 +229,10 @@ export class AppointmentsController {
       status,
       cancelReason:
         status === 'cancelled' ? (appointment.observaciones ?? null) : null,
+      planServicioId: appointment.planServicioId
+        ? String(appointment.planServicioId)
+        : undefined,
+      servicios: appointment.servicios ?? [],
     };
   }
 

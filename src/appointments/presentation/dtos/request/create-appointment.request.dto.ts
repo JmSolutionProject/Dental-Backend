@@ -1,12 +1,34 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsArray,
   IsDateString,
   IsInt,
+  IsNumber,
   IsOptional,
   IsPositive,
   IsString,
   MaxLength,
+  Min,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+
+class AppointmentServiceDto {
+  @ApiProperty({ example: 1 })
+  @IsInt()
+  @IsPositive()
+  servicioId!: number;
+
+  @ApiProperty({ example: 1 })
+  @IsInt()
+  @Min(1)
+  cantidad!: number;
+
+  @ApiProperty({ example: 0, required: false })
+  @IsOptional()
+  @IsNumber()
+  descuento?: number;
+}
 
 export class CreateAppointmentRequestDto {
   @ApiProperty({ example: 1 })
@@ -42,4 +64,16 @@ export class CreateAppointmentRequestDto {
   @IsOptional()
   @IsString()
   observaciones?: string;
+
+  @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
+  @IsInt()
+  planServicioId?: number;
+
+  @ApiPropertyOptional({ type: [AppointmentServiceDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AppointmentServiceDto)
+  servicios?: AppointmentServiceDto[];
 }

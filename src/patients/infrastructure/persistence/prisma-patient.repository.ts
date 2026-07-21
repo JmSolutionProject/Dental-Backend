@@ -104,6 +104,7 @@ export class PrismaPatientRepository implements PatientRepository {
         numeroDocumento: patient.numeroDocumento,
         telefonoWhatsapp: patient.telefonoWhatsapp,
         alergiasCriticas: patient.alergiasCriticas,
+        estado: patient.estado,
       },
     });
 
