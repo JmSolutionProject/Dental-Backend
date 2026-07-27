@@ -66,6 +66,7 @@ export interface AppointmentRepository {
     appointment: UpdateAppointmentParams,
   ): Promise<AppointmentEntity>;
   cancel(id: number): Promise<AppointmentEntity>;
+  delete(id: number): Promise<void>;
   checkAvailability(
     params: CheckAvailabilityParams,
   ): Promise<AvailabilityResult>;

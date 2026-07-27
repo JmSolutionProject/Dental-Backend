@@ -72,6 +72,15 @@ async function ensureEstadoCita(nombreEstado) {
   return estado;
 }
 
+async function ensureEstadoEnvioMensaje(nombreEstado) {
+  let estado = await prisma.estadoEnvioMensaje.findFirst({ where: { nombreEstado } });
+  if (!estado) {
+    estado = await prisma.estadoEnvioMensaje.create({ data: { nombreEstado } });
+    console.log(`  Created estado envio: ${nombreEstado}`);
+  }
+  return estado;
+}
+
 async function main() {
   const hash = await bcrypt.hash('123456', 10);
 
@@ -109,6 +118,12 @@ async function main() {
   await ensureEstadoCita('Finalizada');
   await ensureEstadoCita('Cancelada');
   await ensureEstadoCita('No asistio');
+
+  console.log('\nEnsuring estados de envio de mensajes...');
+  await ensureEstadoEnvioMensaje('Pendiente');
+  await ensureEstadoEnvioMensaje('Enviado');
+  await ensureEstadoEnvioMensaje('Fallido');
+  await ensureEstadoEnvioMensaje('Programado');
 
   console.log('\n--- CREDENCIALES DE PRUEBA ---');
   console.log('  ADMIN:      admin@admin.com / 123456');
