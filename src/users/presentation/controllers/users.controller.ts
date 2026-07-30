@@ -43,6 +43,7 @@ export class UsersController {
       email: payload.email,
       password: payload.password,
       roleIds: payload.roleIds,
+      porcentajeComision: payload.porcentajeComision,
     });
   }
 
@@ -58,6 +59,7 @@ export class UsersController {
       password: payload.password,
       roleIds: payload.roleIds,
       estado: payload.estado,
+      porcentajeComision: payload.porcentajeComision,
     });
   }
 

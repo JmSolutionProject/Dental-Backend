@@ -26,6 +26,7 @@ import { CreateAppointmentUseCase } from '../../application/use-cases/create-app
 import { FindAllAppointmentsUseCase } from '../../application/use-cases/find-all-appointments.use-case';
 import { FindAppointmentByIdUseCase } from '../../application/use-cases/find-appointment-by-id.use-case';
 import { UpdateAppointmentUseCase } from '../../application/use-cases/update-appointment.use-case';
+import { DeleteAppointmentUseCase } from '../../application/use-cases/delete-appointment.use-case';
 import { AppointmentEntity } from '../../domain/entities/appointment.entity';
 import { AppointmentAvailabilityRequestDto } from '../dtos/request/appointment-availability.request.dto';
 import { CreateAppointmentRequestDto } from '../dtos/request/create-appointment.request.dto';
@@ -62,6 +63,7 @@ export class AppointmentsController {
     private readonly findAppointmentByIdUseCase: FindAppointmentByIdUseCase,
     private readonly updateAppointmentUseCase: UpdateAppointmentUseCase,
     private readonly cancelAppointmentUseCase: CancelAppointmentUseCase,
+    private readonly deleteAppointmentUseCase: DeleteAppointmentUseCase,
     private readonly checkAvailabilityUseCase: CheckAvailabilityUseCase,
   ) {}
 
@@ -205,6 +207,16 @@ export class AppointmentsController {
     return this.toAppointmentResponse(appointment);
   }
 
+  @Delete(':id/permanent')
+  @Roles('ADMIN', 'SECRETARIA')
+  @ApiOperation({ summary: 'Eliminar cita definitivamente' })
+  @ApiBearerAuth()
+  @ApiOkResponse()
+  async removePermanent(@Param('id') id: string): Promise<void> {
+    await this.ensureAppointmentExists(Number(id));
+    await this.deleteAppointmentUseCase.execute(Number(id));
+  }
+
   private async ensureAppointmentExists(id: number): Promise<void> {
     const appointment = await this.findAppointmentByIdUseCase.execute(id);
 
@@ -216,7 +228,12 @@ export class AppointmentsController {
   private toAppointmentResponse(
     appointment: AppointmentEntity,
   ): AppointmentResponse {
-    const status = this.toFrontendStatus(appointment.estadoNombre ?? '');
+    let status = this.toFrontendStatus(appointment.estadoNombre ?? '');
+    if (appointment.estadoCitaId === 2) {
+      status = 'completed';
+    } else if (appointment.estadoCitaId === 3) {
+      status = 'cancelled';
+    }
 
     return {
       id: String(appointment.id),
@@ -239,11 +256,17 @@ export class AppointmentsController {
   private toFrontendStatus(status: string): string {
     const normalized = status.trim().toLowerCase();
 
-    if (['cancelled', 'cancelada', 'cancelado'].includes(normalized)) {
+    if (normalized.includes('cancel')) {
       return 'cancelled';
     }
 
-    if (['completed', 'completada', 'atendida'].includes(normalized)) {
+    if (
+      normalized.includes('atend') ||
+      normalized.includes('complet') ||
+      normalized.includes('pagad') ||
+      normalized.includes('finaliz') ||
+      normalized.includes('realiz')
+    ) {
       return 'completed';
     }
 
