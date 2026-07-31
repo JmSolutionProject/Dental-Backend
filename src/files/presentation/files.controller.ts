@@ -1,11 +1,16 @@
 import {
   BadRequestException,
   Controller,
+  Get,
   Post,
+  Query,
+  Res,
+  StreamableFile,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import 'multer';
 import {
@@ -13,7 +18,9 @@ import {
   ApiBody,
   ApiConsumes,
   ApiCreatedResponse,
+  ApiOkResponse,
   ApiOperation,
+  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@auth/infrastructure/guards/jwt-auth.guard';
@@ -49,5 +56,51 @@ export class FilesController {
     }
 
     return this.filesService.upload(file);
+  }
+
+  @Get('image')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'View an image stored in Cloudflare R2' })
+  @ApiQuery({ name: 'key', example: 'uploads/file.png' })
+  @ApiOkResponse({ description: 'Image stream' })
+  async getImage(
+    @Query('key') key: string | undefined,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<StreamableFile> {
+    if (!key) {
+      throw new BadRequestException('File key is required.');
+    }
+
+    const image = await this.filesService.getImage(key);
+
+    response.setHeader('Content-Type', image.contentType);
+    response.setHeader('Content-Disposition', 'inline');
+
+    if (image.contentLength !== undefined) {
+      response.setHeader('Content-Length', image.contentLength);
+    }
+
+    return new StreamableFile(image.body);
+  }
+
+  @Get('images')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List images stored in Cloudflare R2' })
+  @ApiOkResponse({ description: 'Images list' })
+  async getImages(): Promise<
+    Array<{
+      key: string;
+      size?: number;
+      lastModified?: Date;
+      url?: string;
+      viewUrl: string;
+    }>
+  > {
+    const images = await this.filesService.listImages();
+
+    return images.map((image) => ({
+      ...image,
+      viewUrl: `/api/files/image?key=${encodeURIComponent(image.key)}`,
+    }));
   }
 }

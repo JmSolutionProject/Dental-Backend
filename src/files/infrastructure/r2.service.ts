@@ -1,5 +1,15 @@
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  GetObjectCommand,
+  ListObjectsV2Command,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
+import { Readable } from 'node:stream';
 
 type R2Config = {
   accountId: string;
@@ -35,6 +45,90 @@ export class R2Service {
         ? `${config.publicUrl.replace(/\/$/, '')}/${params.key}`
         : undefined,
     };
+  }
+
+  async getObject(key: string): Promise<{
+    body: Readable;
+    contentType: string;
+    contentLength?: number;
+  }> {
+    const config = this.getConfig();
+
+    try {
+      const object = await this.getClient(config).send(
+        new GetObjectCommand({
+          Bucket: config.bucketName,
+          Key: key,
+        }),
+      );
+
+      if (!object.Body) {
+        throw new NotFoundException('File not found.');
+      }
+
+      return {
+        body: object.Body as Readable,
+        contentType: object.ContentType ?? 'application/octet-stream',
+        contentLength: object.ContentLength,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+
+      if (error instanceof Error && error.name === 'NoSuchKey') {
+        throw new NotFoundException('File not found.');
+      }
+
+      throw error;
+    }
+  }
+
+  async listObjects(prefix?: string): Promise<
+    Array<{
+      key: string;
+      size?: number;
+      lastModified?: Date;
+      url?: string;
+    }>
+  > {
+    const config = this.getConfig();
+    const objects: Array<{
+      key: string;
+      size?: number;
+      lastModified?: Date;
+      url?: string;
+    }> = [];
+    let continuationToken: string | undefined;
+
+    do {
+      const response = await this.getClient(config).send(
+        new ListObjectsV2Command({
+          Bucket: config.bucketName,
+          Prefix: prefix,
+          ContinuationToken: continuationToken,
+        }),
+      );
+
+      for (const object of response.Contents ?? []) {
+        if (!object.Key) {
+          continue;
+        }
+
+        objects.push({
+          key: object.Key,
+          size: object.Size,
+          lastModified: object.LastModified,
+          url: config.publicUrl
+            ? `${config.publicUrl.replace(/\/$/, '')}/${object.Key}`
+            : undefined,
+        });
+      }
+
+      continuationToken = response.NextContinuationToken;
+    } while (continuationToken);
+
+    return objects;
   }
 
   private getClient(config: R2Config): S3Client {

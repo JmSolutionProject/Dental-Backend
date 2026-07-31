@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { PrismaService } from '@shared/infrastructure/persistence/prisma/prisma.service';
 import {
   DentalPiece,
   DentalSurface,
@@ -32,38 +33,55 @@ const TOOTH_STATES: ToothState[] = [
 
 @Injectable()
 export class PrismaOdontogramRepository implements OdontogramRepository {
-  private readonly dentalPieces = this.buildDentalPieces();
-  private readonly dentalSurfaces = DENTAL_SURFACES;
-  private readonly toothStates = TOOTH_STATES;
   private readonly odontograms: Odontogram[] = [];
   private readonly details: OdontogramDetail[] = [];
   private nextOdontogramId = 1;
   private nextDetailId = 1;
 
-  listDentalPieces(): Promise<DentalPiece[]> {
-    return Promise.resolve(this.dentalPieces);
+  constructor(private readonly prisma: PrismaService) {}
+
+  async listDentalPieces(): Promise<DentalPiece[]> {
+    const pieces = await this.prisma.piezaDental.findMany({
+      where: { estado: true },
+      orderBy: [{ cuadrante: 'asc' }, { posicion: 'asc' }],
+    });
+
+    if (pieces.length > 0) {
+      return pieces;
+    }
+
+    return this.buildDentalPieces();
   }
 
-  listDentalSurfaces(): Promise<DentalSurface[]> {
-    return Promise.resolve(this.dentalSurfaces);
+  async listDentalSurfaces(): Promise<DentalSurface[]> {
+    const surfaces = await this.prisma.superficieDental.findMany({
+      orderBy: { id: 'asc' },
+    });
+
+    return surfaces.length > 0 ? surfaces : DENTAL_SURFACES;
   }
 
-  listToothStates(): Promise<ToothState[]> {
-    return Promise.resolve(this.toothStates);
+  async listToothStates(): Promise<ToothState[]> {
+    const states = await this.prisma.estadoPiezaDental.findMany({
+      orderBy: { id: 'asc' },
+    });
+
+    return states.length > 0 ? states : TOOTH_STATES;
   }
 
-  existsDentalPiece(id: number): Promise<boolean> {
-    return Promise.resolve(this.dentalPieces.some((piece) => piece.id === id));
+  async existsDentalPiece(id: number): Promise<boolean> {
+    const count = await this.prisma.piezaDental.count({ where: { id } });
+    return count > 0;
   }
 
-  existsDentalSurface(id: number): Promise<boolean> {
-    return Promise.resolve(
-      this.dentalSurfaces.some((surface) => surface.id === id),
-    );
+  async existsDentalSurface(id: number): Promise<boolean> {
+    const count = await this.prisma.superficieDental.count({ where: { id } });
+    return count > 0;
   }
 
-  existsToothState(id: number): Promise<boolean> {
-    return Promise.resolve(this.toothStates.some((state) => state.id === id));
+  async existsToothState(id: number): Promise<boolean> {
+    const count = await this.prisma.estadoPiezaDental.count({ where: { id } });
+    return count > 0;
   }
 
   saveDetail(

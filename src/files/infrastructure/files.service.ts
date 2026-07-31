@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { extname, parse } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { Readable } from 'node:stream';
 import 'multer';
 import { R2Service } from './r2.service';
 
@@ -28,6 +29,29 @@ export class FilesService {
       mimeType: file.mimetype,
       size: file.size,
     };
+  }
+
+  async getImage(key: string): Promise<{
+    body: Readable;
+    contentType: string;
+    contentLength?: number;
+  }> {
+    return this.r2Service.getObject(key);
+  }
+
+  async listImages(): Promise<
+    Array<{
+      key: string;
+      size?: number;
+      lastModified?: Date;
+      url?: string;
+    }>
+  > {
+    const objects = await this.r2Service.listObjects('uploads/');
+
+    return objects.filter((object) =>
+      /\.(avif|gif|jpe?g|png|webp)$/i.test(object.key),
+    );
   }
 
   private buildObjectKey(originalName: string): string {
