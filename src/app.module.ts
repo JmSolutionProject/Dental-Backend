@@ -12,6 +12,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { UsersModule } from './users/users.module';
 import { TreatmentPlansModule } from './treatment-plans/treatment-plans.module';
 import { PrismaModule } from './shared/infrastructure/persistence/prisma/prisma.module';
+import { FilesModule } from './files/files.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { PrismaModule } from './shared/infrastructure/persistence/prisma/prisma.
     DashboardModule,
     UsersModule,
     TreatmentPlansModule,
+    FilesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

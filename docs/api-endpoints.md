@@ -82,6 +82,7 @@ Tambien hay endpoints `POST` que actualmente parecen stubs: validan el body, per
 | Health/App          | `GET /api`                                                     |
 | Auth                | `POST /auth/register`, `POST /auth/login`, `GET /auth/profile` |
 | Roles               | CRUD en `/roles`                                               |
+| Users               | CRUD en `/users` y cambio de contraseña                        |
 | Patients            | CRUD en `/patients`                                            |
 | Appointments        | CRUD en `/appointments` y disponibilidad                       |
 | Payments            | CRUD en `/payments`                                            |
@@ -285,6 +286,69 @@ Todos los campos son opcionales. Responde el rol actualizado.
 Elimina logicamente un rol colocando `estado: false`.
 
 Response: rol actualizado.
+
+## Users
+
+Todos los endpoints de usuarios requieren Bearer token. Crear, actualizar, eliminar y cambiar contraseña requieren rol `ADMIN`; listar y obtener por ID tambien permite `SECRETARIA` y `MEDICO`.
+
+### `GET /api/users`
+
+Lista usuarios activos con sus roles.
+
+Query opcional: `role`, para filtrar por nombre de rol.
+
+### `GET /api/users/:id`
+
+Obtiene un usuario por ID.
+
+### `POST /api/users`
+
+Crea un usuario desde el panel admin.
+
+Request:
+
+```json
+{
+  "nombreCompleto": "Juan Perez",
+  "email": "juan@clinica.com",
+  "password": "123456",
+  "roleIds": [2],
+  "porcentajeComision": 35
+}
+```
+
+### `PUT /api/users/:id`
+
+Actualiza parcialmente un usuario. Si se envia `password`, tambien cambia la contraseña.
+
+Request:
+
+```json
+{
+  "nombreCompleto": "Juan Perez",
+  "email": "juan@clinica.com",
+  "password": "654321",
+  "roleIds": [2],
+  "estado": true,
+  "porcentajeComision": 35
+}
+```
+
+### `PUT /api/users/:id/password`
+
+Cambia solo la contraseña de un usuario desde el panel admin.
+
+Request:
+
+```json
+{
+  "password": "654321"
+}
+```
+
+### `DELETE /api/users/:id`
+
+Desactiva un usuario colocando `estado: false`.
 
 ## Patients
 

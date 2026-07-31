@@ -18,7 +18,7 @@ lerna-debug.log*
 .wwebjs_auth
 
 # WhatsApp session
-.wwebjs_auth
+.wwebjs_cache
 
 # Tests
 /coverage

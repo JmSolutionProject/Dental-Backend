@@ -145,6 +145,18 @@ export class ManageUsersUseCase {
     return this.findById(id);
   }
 
+  async changePassword(id: number, password: string): Promise<UserWithRoles> {
+    const user = await this.prisma.usuario.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException('Usuario no encontrado.');
+
+    await this.prisma.usuario.update({
+      where: { id },
+      data: { passwordHash: await bcrypt.hash(password, 10) },
+    });
+
+    return this.findById(id);
+  }
+
   async remove(id: number): Promise<UserWithRoles> {
     const user = await this.prisma.usuario.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('Usuario no encontrado.');
