@@ -14,12 +14,11 @@ lerna-debug.log*
 
 # OS
 .DS_Store
-# WhatsApp session & cache
+# WhatsApp session
 .wwebjs_auth
+
+# WhatsApp session
 .wwebjs_cache
-*.sql
-delete-patient.js
-log_estados.js
 
 # Tests
 /coverage

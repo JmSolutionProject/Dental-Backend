@@ -10,6 +10,7 @@ export class UserResponseDto {
   @ApiProperty() nombreCompleto: string;
   @ApiProperty() email: string;
   @ApiProperty() estado: boolean;
+  @ApiProperty() porcentajeComision: number;
   @ApiProperty({ type: [UserRoleDto] }) roles: UserRoleDto[];
   @ApiProperty() fechaRegistro: string;
 }

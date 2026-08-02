@@ -251,20 +251,55 @@ export class OdontogramController {
   ) {
     await this.ensureDetailExists(id);
 
-    await this.prisma.odontogramaDetalle.update({
+    const data: Prisma.OdontogramaDetalleUncheckedUpdateInput = {};
+
+    if (payload.odontogramaId !== undefined) {
+      data.odontogramaId = payload.odontogramaId;
+    }
+
+    if (payload.piezaDentalId !== undefined || payload.fdiNumber !== undefined) {
+      const piece = await this.resolveDentalPiece(payload);
+      data.piezaDentalId = piece.id;
+    }
+
+    if (payload.superficieId !== undefined || payload.surface !== undefined) {
+      const surface = await this.resolveDentalSurface(payload);
+      data.superficieId = surface?.id ?? null;
+    }
+
+    if (
+      payload.estadoPiezaId !== undefined ||
+      payload.condition !== undefined ||
+      payload.diagnostico !== undefined
+    ) {
+      const state = await this.resolveToothState(payload);
+      data.estadoPiezaId = state.id;
+    }
+
+    if (payload.diagnostico !== undefined || payload.condition !== undefined) {
+      data.diagnostico = payload.diagnostico ?? payload.condition;
+    }
+
+    if (payload.tratamientoRecomendado !== undefined) {
+      data.tratamientoRecomendado = payload.tratamientoRecomendado;
+    }
+
+    if (payload.observacion !== undefined || payload.notes !== undefined) {
+      data.observacion = payload.observacion ?? payload.notes;
+    }
+
+    const detail = await this.prisma.odontogramaDetalle.update({
       where: { id: Number(id) },
-      data: {
-        odontogramaId: payload.odontogramaId,
-        piezaDentalId: payload.piezaDentalId,
-        superficieId: payload.superficieId,
-        estadoPiezaId: payload.estadoPiezaId,
-        diagnostico: payload.diagnostico,
-        tratamientoRecomendado: payload.tratamientoRecomendado,
-        observacion: payload.observacion,
+      data,
+      include: {
+        piezaDental: true,
+        superficie: true,
+        estadoPieza: true,
+        odontograma: true,
       },
     });
 
-    return this.findDetailById(id);
+    return this.toDetailResponse(detail);
   }
 
   @Delete('details/:id')

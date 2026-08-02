@@ -1,9 +1,27 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '@auth/infrastructure/guards/jwt-auth.guard';
 import { RolesGuard } from '@auth/infrastructure/guards/roles.guard';
 import { Roles } from '@auth/presentation/decorators/roles.decorator';
 import { ManageUsersUseCase } from '../../application/use-cases/manage-users.use-case';
+import { ChangeUserPasswordRequestDto } from '../dtos/request/change-user-password.request.dto';
 import { CreateUserRequestDto } from '../dtos/request/create-user.request.dto';
 import { UpdateUserRequestDto } from '../dtos/request/update-user.request.dto';
 import { UserResponseDto } from '../dtos/response/user.response.dto';
@@ -52,8 +70,11 @@ export class UsersController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Actualizar usuario' })
   @ApiOkResponse({ type: UserResponseDto })
-  update(@Param('id') id: string, @Body() payload: UpdateUserRequestDto) {
-    return this.manageUsers.update(Number(id), {
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() payload: UpdateUserRequestDto,
+  ) {
+    return this.manageUsers.update(id, {
       nombreCompleto: payload.nombreCompleto,
       email: payload.email,
       password: payload.password,
@@ -63,12 +84,24 @@ export class UsersController {
     });
   }
 
+  @Put(':id/password')
+  @Roles('ADMIN')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Cambiar contraseña de usuario' })
+  @ApiOkResponse({ type: UserResponseDto })
+  changePassword(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() payload: ChangeUserPasswordRequestDto,
+  ) {
+    return this.manageUsers.changePassword(id, payload.password);
+  }
+
   @Delete(':id')
   @Roles('ADMIN')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Desactivar usuario (soft delete)' })
   @ApiOkResponse({ type: UserResponseDto })
-  remove(@Param('id') id: string) {
-    return this.manageUsers.remove(Number(id));
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.manageUsers.remove(id);
   }
 }
