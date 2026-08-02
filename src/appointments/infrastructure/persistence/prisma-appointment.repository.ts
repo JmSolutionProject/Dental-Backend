@@ -202,6 +202,10 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
     return this.toEntity(cancelled);
   }
 
+  async delete(id: number): Promise<void> {
+    await this.prisma.cita.delete({ where: { id } });
+  }
+
   async checkAvailability(
     params: CheckAvailabilityParams,
   ): Promise<AvailabilityResult> {

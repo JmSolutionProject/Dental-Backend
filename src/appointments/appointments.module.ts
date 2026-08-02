@@ -6,6 +6,7 @@ import { CreateAppointmentUseCase } from './application/use-cases/create-appoint
 import { FindAllAppointmentsUseCase } from './application/use-cases/find-all-appointments.use-case';
 import { FindAppointmentByIdUseCase } from './application/use-cases/find-appointment-by-id.use-case';
 import { UpdateAppointmentUseCase } from './application/use-cases/update-appointment.use-case';
+import { DeleteAppointmentUseCase } from './application/use-cases/delete-appointment.use-case';
 import { APPOINTMENT_REPOSITORY } from './domain/repositories/appointment.repository';
 import { PrismaAppointmentRepository } from './infrastructure/persistence/prisma-appointment.repository';
 import { AppointmentsController } from './presentation/controllers/appointments.controller';
@@ -28,6 +29,7 @@ const jwtExpiresIn = Number(process.env.JWT_EXPIRES_IN ?? 86400);
     FindAppointmentByIdUseCase,
     UpdateAppointmentUseCase,
     CancelAppointmentUseCase,
+    DeleteAppointmentUseCase,
     CheckAvailabilityUseCase,
     {
       provide: APPOINTMENT_REPOSITORY,

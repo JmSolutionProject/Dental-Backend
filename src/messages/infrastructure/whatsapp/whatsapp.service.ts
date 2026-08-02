@@ -135,6 +135,10 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
       throw new Error('WhatsApp phone number is empty.');
     }
 
+    if (digits.length === 9) {
+      return `51${digits}@c.us`;
+    }
+
     return `${digits}@c.us`;
   }
 }
