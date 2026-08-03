@@ -4,6 +4,7 @@ import {
   ListObjectsV2Command,
   type ListObjectsV2CommandOutput,
   PutObjectCommand,
+  type PutObjectCommandOutput,
   S3Client,
 } from '@aws-sdk/client-s3';
 import {
@@ -21,8 +22,8 @@ type R2Config = {
   publicUrl?: string;
 };
 
-type R2Client = S3Client & {
-  send(command: PutObjectCommand): Promise<unknown>;
+type R2Client = {
+  send(command: PutObjectCommand): Promise<PutObjectCommandOutput>;
   send(command: GetObjectCommand): Promise<GetObjectCommandOutput>;
   send(command: ListObjectsV2Command): Promise<ListObjectsV2CommandOutput>;
 };

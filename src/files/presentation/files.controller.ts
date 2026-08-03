@@ -10,7 +10,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import type { Response } from 'express';
+import type { ServerResponse } from 'node:http';
 import { FileInterceptor } from '@nestjs/platform-express';
 import 'multer';
 import {
@@ -65,7 +65,7 @@ export class FilesController {
   @ApiOkResponse({ description: 'Image stream' })
   async getImage(
     @Query('key') key: string | undefined,
-    @Res({ passthrough: true }) response: Response,
+    @Res({ passthrough: true }) response: ServerResponse,
   ): Promise<StreamableFile> {
     if (!key) {
       throw new BadRequestException('File key is required.');
@@ -73,11 +73,11 @@ export class FilesController {
 
     const image = await this.filesService.getImage(key);
 
-    response.set('Content-Type', image.contentType);
-    response.set('Content-Disposition', 'inline');
+    response.setHeader('Content-Type', image.contentType);
+    response.setHeader('Content-Disposition', 'inline');
 
     if (image.contentLength !== undefined) {
-      response.set('Content-Length', image.contentLength.toString());
+      response.setHeader('Content-Length', image.contentLength);
     }
 
     return new StreamableFile(image.body);
