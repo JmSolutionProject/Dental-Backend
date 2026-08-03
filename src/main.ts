@@ -1,3 +1,4 @@
+import 'tsconfig-paths/register';
 import { config as loadEnv } from 'dotenv';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
@@ -12,6 +13,7 @@ async function bootstrap(): Promise<void> {
 
   const allowedOrigins = process.env.CORS_ORIGIN?.split(',') ?? [
     'http://localhost:4200',
+    process.env.URL_PRODUCCTION_APP,
   ];
 
   app.enableCors({
