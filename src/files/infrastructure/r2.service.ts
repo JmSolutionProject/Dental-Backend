@@ -4,7 +4,6 @@ import {
   ListObjectsV2Command,
   type ListObjectsV2CommandOutput,
   PutObjectCommand,
-  type PutObjectCommandOutput,
   S3Client,
 } from '@aws-sdk/client-s3';
 import {
@@ -23,9 +22,7 @@ type R2Config = {
 };
 
 type R2Client = {
-  send(command: PutObjectCommand): Promise<PutObjectCommandOutput>;
-  send(command: GetObjectCommand): Promise<GetObjectCommandOutput>;
-  send(command: ListObjectsV2Command): Promise<ListObjectsV2CommandOutput>;
+  send(command: unknown): Promise<unknown>;
 };
 
 @Injectable()
@@ -64,12 +61,12 @@ export class R2Service {
     const config = this.getConfig();
 
     try {
-      const object = await this.getClient(config).send(
+      const object = (await this.getClient(config).send(
         new GetObjectCommand({
           Bucket: config.bucketName,
           Key: key,
         }),
-      );
+      )) as GetObjectCommandOutput;
 
       if (!object.Body) {
         throw new NotFoundException('File not found.');
@@ -111,13 +108,13 @@ export class R2Service {
     let continuationToken: string | undefined;
 
     do {
-      const response = await this.getClient(config).send(
+      const response = (await this.getClient(config).send(
         new ListObjectsV2Command({
           Bucket: config.bucketName,
           Prefix: prefix,
           ContinuationToken: continuationToken,
         }),
-      );
+      )) as ListObjectsV2CommandOutput;
 
       for (const object of response.Contents ?? []) {
         if (!object.Key) {
@@ -148,7 +145,7 @@ export class R2Service {
         accessKeyId: config.accessKeyId,
         secretAccessKey: config.secretAccessKey,
       },
-    }) as R2Client;
+    }) as unknown as R2Client;
 
     return this.client;
   }

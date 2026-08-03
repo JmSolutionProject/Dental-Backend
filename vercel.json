@@ -4,14 +4,14 @@
   "buildCommand": "pnpm prisma:generate && pnpm prisma:migrate:deploy && pnpm prisma:seed && pnpm build",
   "builds": [
     {
-      "src": "src/main.ts",
+      "src": "dist/src/main.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "src/main.ts",
+      "dest": "dist/src/main.js",
       "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
     }
   ]

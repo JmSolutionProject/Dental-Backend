@@ -1,4 +1,3 @@
-import 'tsconfig-paths/register';
 import { config as loadEnv } from 'dotenv';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';

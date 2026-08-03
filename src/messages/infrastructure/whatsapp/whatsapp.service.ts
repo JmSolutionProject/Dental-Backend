@@ -19,7 +19,8 @@ type WhatsappConnectionStatus =
 @Injectable()
 export class WhatsappService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(WhatsappService.name);
-  private readonly enabled = process.env.WHATSAPP_ENABLED !== 'false';
+  private readonly enabled =
+    !process.env.VERCEL && process.env.WHATSAPP_ENABLED !== 'false';
   private client: Client | null = null;
   private latestQr: string | null = null;
   private lastError: string | null = null;
@@ -32,7 +33,7 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
   onModuleInit(): void {
     if (!this.enabled) {
       this.logger.warn(
-        'WhatsApp client disabled. Set WHATSAPP_ENABLED=true to enable it.',
+        'WhatsApp client disabled. It is not started in Vercel serverless functions.',
       );
       return;
     }
