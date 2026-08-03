@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "pnpm build",
+  "buildCommand": "pnpm prisma:migrate:deploy && pnpm prisma:seed && pnpm build",
   "builds": [
     {
       "src": "dist/src/main.js",
