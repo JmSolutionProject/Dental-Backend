@@ -14,7 +14,7 @@ let cachedServer: ((req: Request, res: Response) => void) | undefined;
 function configureApp(app: INestApplication): void {
   const allowedOrigins = process.env.CORS_ORIGIN?.split(',') ?? [
     'http://localhost:4200',
-    process.env.URL_PRODUCCTION_APP,
+    'https://dentalappc.netlify.app',
   ];
 
   app.enableCors({
