@@ -18,7 +18,7 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '@/generated/prisma/client';
 import { JwtAuthGuard } from '@auth/infrastructure/guards/jwt-auth.guard';
 import { RolesGuard } from '@auth/infrastructure/guards/roles.guard';
 import { Roles } from '@auth/presentation/decorators/roles.decorator';

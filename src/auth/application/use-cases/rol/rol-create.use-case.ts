@@ -1,5 +1,5 @@
 import { ConflictException, Inject, Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '@/generated/prisma/client';
 import { CreateRolCommand } from '@auth/application/commands/create-rol.command';
 import { RolOutput } from '@auth/application/outputs/rol.output';
 import {
