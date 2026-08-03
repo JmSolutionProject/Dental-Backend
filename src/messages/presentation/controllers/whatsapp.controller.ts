@@ -17,6 +17,7 @@ import {
 import { JwtAuthGuard } from '@auth/infrastructure/guards/jwt-auth.guard';
 import { PrismaService } from '@shared/infrastructure/persistence/prisma/prisma.service';
 import { WhatsappService } from '../../infrastructure/whatsapp/whatsapp.service';
+import { SendDirectWhatsappMessageRequestDto } from '../dtos/request/send-direct-whatsapp-message.request.dto';
 import { SendWhatsappMessageRequestDto } from '../dtos/request/send-whatsapp-message.request.dto';
 
 @ApiTags('whatsapp')
@@ -71,7 +72,31 @@ export class WhatsappController {
       return await this.whatsappService.sendMessage(
         patient.telefonoWhatsapp,
         payload.content,
+        {
+          mediaKey: payload.mediaKey,
+          mediaName: payload.mediaName,
+          mediaMimeType: payload.mediaMimeType,
+        },
       );
+    } catch (error) {
+      throw new BadRequestException(
+        error instanceof Error
+          ? error.message
+          : 'No se pudo enviar el mensaje de WhatsApp.',
+      );
+    }
+  }
+
+  @Post('send')
+  @ApiOperation({ summary: 'Enviar WhatsApp a un numero manual' })
+  @ApiOkResponse()
+  async sendDirect(@Body() payload: SendDirectWhatsappMessageRequestDto) {
+    try {
+      return await this.whatsappService.sendMessage(payload.phone, payload.content, {
+        mediaKey: payload.mediaKey,
+        mediaName: payload.mediaName,
+        mediaMimeType: payload.mediaMimeType,
+      });
     } catch (error) {
       throw new BadRequestException(
         error instanceof Error

@@ -4,8 +4,9 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
-import { Client, LocalAuth } from 'whatsapp-web.js';
+import { Client, LocalAuth, MessageMedia } from 'whatsapp-web.js';
 import * as qrcode from 'qrcode-terminal';
+import { FilesService } from '@/files/infrastructure/files.service';
 
 type WhatsappConnectionStatus =
   | 'disabled'
@@ -25,6 +26,8 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
   private status: WhatsappConnectionStatus = this.enabled
     ? 'initializing'
     : 'disabled';
+
+  constructor(private readonly filesService: FilesService) {}
 
   onModuleInit(): void {
     if (!this.enabled) {
@@ -111,15 +114,37 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
   async sendMessage(
     phone: string,
     content: string,
+    options?: { mediaKey?: string; mediaName?: string; mediaMimeType?: string },
   ): Promise<{ messageId: string }> {
     if (!this.client || this.status !== 'ready') {
       throw new Error('WhatsApp client is not ready.');
     }
 
     const chatId = this.toChatId(phone);
-    const message = await this.client.sendMessage(chatId, content);
+    const message = options?.mediaKey
+      ? await this.sendMediaMessage(chatId, content, {
+          mediaKey: options.mediaKey,
+          mediaName: options.mediaName,
+          mediaMimeType: options.mediaMimeType,
+        })
+      : await this.client.sendMessage(chatId, content);
 
     return { messageId: message.id._serialized };
+  }
+
+  private async sendMediaMessage(
+    chatId: string,
+    caption: string,
+    options: { mediaKey: string; mediaName?: string; mediaMimeType?: string },
+  ) {
+    const file = await this.filesService.getFileBuffer(options.mediaKey);
+    const media = new MessageMedia(
+      options.mediaMimeType ?? file.contentType,
+      file.buffer.toString('base64'),
+      options.mediaName ?? file.filename,
+    );
+
+    return this.client!.sendMessage(chatId, media, { caption });
   }
 
   private toChatId(phone: string): string {
