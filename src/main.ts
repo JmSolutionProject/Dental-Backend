@@ -10,14 +10,39 @@ loadEnv();
 
 let cachedServer: ((req: Request, res: Response) => void) | undefined;
 
-function configureApp(app: INestApplication): void {
-  const allowedOrigins = process.env.CORS_ORIGIN?.split(',') ?? [
-    'http://localhost:4200',
-    'https://dentalappc.netlify.app',
-  ];
+const defaultAllowedOrigins = [
+  'http://localhost:4200',
+  'https://dentalappc.netlify.app',
+];
 
+function getAllowedOrigins(): string[] {
+  return (process.env.CORS_ORIGIN?.split(',') ?? defaultAllowedOrigins)
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
+
+function applyCorsHeaders(req: Request, res: Response): void {
+  const origin = req.headers.origin;
+
+  if (typeof origin === 'string' && getAllowedOrigins().includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+  }
+
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader(
+    'Access-Control-Allow-Methods',
+    'GET,POST,PUT,PATCH,DELETE,OPTIONS',
+  );
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    req.headers['access-control-request-headers'] ?? 'Content-Type, Authorization',
+  );
+}
+
+function configureApp(app: INestApplication): void {
   app.enableCors({
-    origin: allowedOrigins,
+    origin: getAllowedOrigins(),
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
@@ -63,6 +88,13 @@ async function bootstrap(): Promise<void> {
 }
 
 export default async function handler(req: Request, res: Response): Promise<void> {
+  applyCorsHeaders(req, res);
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).end();
+    return;
+  }
+
   cachedServer ??= await createServer();
   cachedServer(req, res);
 }
