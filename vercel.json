@@ -1,6 +1,7 @@
 {
   "version": 2,
-  "buildCommand": "pnpm prisma:migrate:deploy && pnpm prisma:seed && pnpm build",
+  "installCommand": "pnpm install",
+  "buildCommand": "pnpm prisma:generate && pnpm prisma:migrate:deploy && pnpm prisma:seed && pnpm build",
   "builds": [
     {
       "src": "src/main.ts",
