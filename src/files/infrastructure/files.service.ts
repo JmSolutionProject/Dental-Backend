@@ -39,6 +39,25 @@ export class FilesService {
     return this.r2Service.getObject(key);
   }
 
+  async getFileBuffer(key: string): Promise<{
+    buffer: Buffer;
+    contentType: string;
+    filename: string;
+  }> {
+    const file = await this.r2Service.getObject(key);
+    const chunks: Buffer[] = [];
+
+    for await (const chunk of file.body) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+
+    return {
+      buffer: Buffer.concat(chunks),
+      contentType: file.contentType,
+      filename: key.split('/').pop() ?? 'file',
+    };
+  }
+
   async listImages(): Promise<
     Array<{
       key: string;

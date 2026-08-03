@@ -1,8 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsOptional, IsString, MinLength } from 'class-validator';
 
-export class SendWhatsappMessageRequestDto {
-  @ApiProperty({ example: 'Hola, le recordamos su cita dental.' })
+export class SendDirectWhatsappMessageRequestDto {
+  @ApiProperty({ example: '+51999999999' })
+  @IsString()
+  @MinLength(1)
+  phone!: string;
+
+  @ApiProperty({ example: 'Hola, este es un mensaje de prueba.' })
   @IsString()
   @MinLength(1)
   content!: string;

@@ -209,6 +209,12 @@ model CampanaWhatsapp {
   descripcion      String?           @db.Text
   usuarioCreadorId Int               @map("usuario_creador_id")
   fechaCreacion    DateTime          @default(now()) @map("fecha_creacion")
+  fechaInicio      DateTime?         @map("fecha_inicio")
+  fechaPausa       DateTime?         @map("fecha_pausa")
+  fechaCancelacion DateTime?         @map("fecha_cancelacion")
+  fechaFinalizacion DateTime?        @map("fecha_finalizacion")
+  estadoProceso    String            @default("pending") @map("estado_proceso") @db.VarChar(20)
+  tipoEnvio        String            @default("custom-message") @map("tipo_envio") @db.VarChar(50)
   estado           Boolean           @default(true)
   usuarioCreador   Usuario           @relation("CampanasCreadas", fields: [usuarioCreadorId], references: [id])
   pacientes        CampanaPaciente[]
@@ -217,14 +223,26 @@ model CampanaWhatsapp {
 }
 
 model CampanaPaciente {
-  id            Int                @id @default(autoincrement())
-  campanaId     Int                @map("campana_id")
-  pacienteId    Int                @map("paciente_id")
-  estadoEnvioId Int                @map("estado_envio_id")
-  fechaEnvio    DateTime?          @map("fecha_envio")
-  campana       CampanaWhatsapp    @relation(fields: [campanaId], references: [id])
-  paciente      Paciente           @relation(fields: [pacienteId], references: [id])
-  estadoEnvio   EstadoEnvioMensaje @relation(fields: [estadoEnvioId], references: [id])
+  id                 Int                @id @default(autoincrement())
+  campanaId          Int                @map("campana_id")
+  pacienteId         Int                @map("paciente_id")
+  estadoEnvioId      Int                @map("estado_envio_id")
+  telefonoWhatsapp   String?            @map("telefono_whatsapp") @db.VarChar(20)
+  contenido          String?            @db.Text
+  mediaKey           String?            @map("media_key") @db.VarChar(255)
+  mediaName          String?            @map("media_name") @db.VarChar(255)
+  mediaMimeType      String?            @map("media_mime_type") @db.VarChar(100)
+  intentos           Int                @default(0)
+  maxIntentos        Int                @default(3) @map("max_intentos")
+  errorDetalle       String?            @map("error_detalle") @db.Text
+  whatsappMessageId  String?            @map("whatsapp_message_id") @db.VarChar(255)
+  lockedAt           DateTime?          @map("locked_at")
+  fechaCreacion      DateTime           @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime           @updatedAt @map("fecha_actualizacion")
+  fechaEnvio         DateTime?          @map("fecha_envio")
+  campana            CampanaWhatsapp    @relation(fields: [campanaId], references: [id])
+  paciente           Paciente           @relation(fields: [pacienteId], references: [id])
+  estadoEnvio        EstadoEnvioMensaje @relation(fields: [estadoEnvioId], references: [id])
 
   @@map("campana_pacientes")
 }

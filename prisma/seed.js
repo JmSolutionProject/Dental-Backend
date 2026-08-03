@@ -121,8 +121,10 @@ async function main() {
 
   console.log('\nEnsuring estados de envio de mensajes...');
   await ensureEstadoEnvioMensaje('Pendiente');
+  await ensureEstadoEnvioMensaje('Enviando');
   await ensureEstadoEnvioMensaje('Enviado');
   await ensureEstadoEnvioMensaje('Fallido');
+  await ensureEstadoEnvioMensaje('Cancelado');
   await ensureEstadoEnvioMensaje('Programado');
 
   console.log('\n--- CREDENCIALES DE PRUEBA ---');
