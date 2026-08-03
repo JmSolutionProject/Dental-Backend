@@ -1,5 +1,5 @@
 import { config as loadEnv } from 'dotenv';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication, RequestMethod, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
@@ -23,7 +23,9 @@ function configureApp(app: INestApplication): void {
     credentials: true,
   });
 
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix('api', {
+    exclude: [{ path: 'health', method: RequestMethod.GET }],
+  });
 
   app.enableShutdownHooks();
 
