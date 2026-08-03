@@ -20,7 +20,7 @@ type WhatsappConnectionStatus =
 export class WhatsappService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(WhatsappService.name);
   private readonly enabled =
-    !process.env.VERCEL && process.env.WHATSAPP_ENABLED !== 'false';
+    process.env.WHATSAPP_ENABLED === 'true' && !process.env.VERCEL;
   private client: Client | null = null;
   private latestQr: string | null = null;
   private lastError: string | null = null;
@@ -33,7 +33,7 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
   onModuleInit(): void {
     if (!this.enabled) {
       this.logger.warn(
-        'WhatsApp client disabled. It is not started in Vercel serverless functions.',
+        'WhatsApp client disabled. Set WHATSAPP_ENABLED=true outside serverless environments to enable it.',
       );
       return;
     }

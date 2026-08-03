@@ -8,6 +8,8 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build && tsc-alias -p tsconfig.json",
+    "render:build": "pnpm install --frozen-lockfile && pnpm prisma:generate && pnpm build",
+    "render:start": "pnpm prisma:migrate:deploy && pnpm start:prod",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
