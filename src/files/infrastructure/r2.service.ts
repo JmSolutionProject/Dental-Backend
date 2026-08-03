@@ -1,6 +1,8 @@
 import {
   GetObjectCommand,
+  type GetObjectCommandOutput,
   ListObjectsV2Command,
+  type ListObjectsV2CommandOutput,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
@@ -19,9 +21,15 @@ type R2Config = {
   publicUrl?: string;
 };
 
+type R2Client = S3Client & {
+  send(command: PutObjectCommand): Promise<unknown>;
+  send(command: GetObjectCommand): Promise<GetObjectCommandOutput>;
+  send(command: ListObjectsV2Command): Promise<ListObjectsV2CommandOutput>;
+};
+
 @Injectable()
 export class R2Service {
-  private client: S3Client | null = null;
+  private client: R2Client | null = null;
 
   async uploadObject(params: {
     key: string;
@@ -131,7 +139,7 @@ export class R2Service {
     return objects;
   }
 
-  private getClient(config: R2Config): S3Client {
+  private getClient(config: R2Config): R2Client {
     this.client ??= new S3Client({
       region: 'auto',
       endpoint: `https://${config.accountId}.r2.cloudflarestorage.com`,
@@ -139,7 +147,7 @@ export class R2Service {
         accessKeyId: config.accessKeyId,
         secretAccessKey: config.secretAccessKey,
       },
-    });
+    }) as R2Client;
 
     return this.client;
   }

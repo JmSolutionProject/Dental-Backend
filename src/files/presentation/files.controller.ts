@@ -73,11 +73,11 @@ export class FilesController {
 
     const image = await this.filesService.getImage(key);
 
-    response.setHeader('Content-Type', image.contentType);
-    response.setHeader('Content-Disposition', 'inline');
+    response.set('Content-Type', image.contentType);
+    response.set('Content-Disposition', 'inline');
 
     if (image.contentLength !== undefined) {
-      response.setHeader('Content-Length', image.contentLength);
+      response.set('Content-Length', image.contentLength.toString());
     }
 
     return new StreamableFile(image.body);
