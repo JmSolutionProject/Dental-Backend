@@ -3,14 +3,14 @@
   "buildCommand": "pnpm prisma:migrate:deploy && pnpm prisma:seed && pnpm build",
   "builds": [
     {
-      "src": "dist/src/main.js",
+      "src": "src/main.ts",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "dist/src/main.js",
+      "dest": "src/main.ts",
       "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
     }
   ]
