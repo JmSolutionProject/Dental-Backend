@@ -1,16 +1,17 @@
 import 'tsconfig-paths/register';
 import { config as loadEnv } from 'dotenv';
-import { ValidationPipe } from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import type { Request, Response } from 'express';
 import { AppModule } from './app.module';
 
 loadEnv({ path: '.env.local' });
 loadEnv();
 
-async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule);
+let cachedServer: ((req: Request, res: Response) => void) | undefined;
 
+function configureApp(app: INestApplication): void {
   const allowedOrigins = process.env.CORS_ORIGIN?.split(',') ?? [
     'http://localhost:4200',
     process.env.URL_PRODUCCTION_APP,
@@ -44,8 +45,27 @@ async function bootstrap(): Promise<void> {
 
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api', app, swaggerDocument);
+}
 
+async function createServer(): Promise<(req: Request, res: Response) => void> {
+  const app = await NestFactory.create(AppModule);
+  configureApp(app);
+  await app.init();
+
+  return app.getHttpAdapter().getInstance();
+}
+
+async function bootstrap(): Promise<void> {
+  const app = await NestFactory.create(AppModule);
+  configureApp(app);
   await app.listen(process.env.PORT ?? 13000);
 }
 
-void bootstrap();
+export default async function handler(req: Request, res: Response): Promise<void> {
+  cachedServer ??= await createServer();
+  cachedServer(req, res);
+}
+
+if (!process.env.VERCEL) {
+  void bootstrap();
+}

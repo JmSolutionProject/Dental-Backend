@@ -128,9 +128,9 @@ async function main() {
   await ensureEstadoEnvioMensaje('Programado');
 
   console.log('\n--- CREDENCIALES DE PRUEBA ---');
-  console.log('  ADMIN:      admin@admin.com / 123456');
-  console.log('  SECRETARIA: secre@clinica.com / 123456');
-  console.log('  MEDICO:     medico@clinica.com / 123456');
+  console.log('  ADMIN:      admin@admin.com / 4dm1n');
+  console.log('  SECRETARIA: secre@clinica.com / s3cr3t');
+  console.log('  MEDICO:     medico@clinica.com / m3d1c0');
   console.log('---');
 }
 
