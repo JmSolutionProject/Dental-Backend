@@ -9,7 +9,7 @@ services:
       - key: NODE_VERSION
         value: 24.14.1
       - key: WHATSAPP_ENABLED
-        value: "false"
+        value: "true"
       - key: CORS_ORIGIN
         value: https://dentalappc.netlify.app
       - key: DATABASE_URL
