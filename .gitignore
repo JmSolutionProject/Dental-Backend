@@ -12,11 +12,11 @@ pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
-
 # OS
 .DS_Store
 # WhatsApp session
 .wwebjs_auth
+.baileys_auth
 
 # WhatsApp session
 .wwebjs_cache
