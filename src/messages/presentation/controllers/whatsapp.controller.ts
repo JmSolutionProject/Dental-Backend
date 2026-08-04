@@ -17,6 +17,7 @@ import {
 import { JwtAuthGuard } from '@auth/infrastructure/guards/jwt-auth.guard';
 import { PrismaService } from '@shared/infrastructure/persistence/prisma/prisma.service';
 import { WhatsappService } from '../../infrastructure/whatsapp/whatsapp.service';
+import { RequestWhatsappPairingCodeRequestDto } from '../dtos/request/request-whatsapp-pairing-code.request.dto';
 import { SendDirectWhatsappMessageRequestDto } from '../dtos/request/send-direct-whatsapp-message.request.dto';
 import { SendWhatsappMessageRequestDto } from '../dtos/request/send-whatsapp-message.request.dto';
 
@@ -42,6 +43,23 @@ export class WhatsappController {
   @ApiOkResponse()
   getQr() {
     return this.whatsappService.getLatestQr();
+  }
+
+  @Post('pairing-code')
+  @ApiOperation({ summary: 'Solicitar codigo de vinculacion de WhatsApp Web' })
+  @ApiOkResponse()
+  async requestPairingCode(
+    @Body() payload: RequestWhatsappPairingCodeRequestDto,
+  ) {
+    try {
+      return await this.whatsappService.requestPairingCode(payload.phone);
+    } catch (error) {
+      throw new BadRequestException(
+        error instanceof Error
+          ? error.message
+          : 'No se pudo generar el codigo de vinculacion de WhatsApp.',
+      );
+    }
   }
 
   @Post('patients/:patientId/send')
