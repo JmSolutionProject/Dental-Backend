@@ -29,8 +29,15 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
   async findAll(
     params: FindAllPaymentsParams,
   ): Promise<PaginatedPaymentsResult> {
-    const { page, limit, search } = params;
-    const where = this.buildSearchWhere(search);
+    const { page, limit, search, patientId } = params;
+    const searchWhere = this.buildSearchWhere(search);
+    const where: Prisma.PagoWhereInput | undefined =
+      patientId !== undefined
+        ? {
+            ...(searchWhere ?? {}),
+            cita: { pacienteId: patientId },
+          }
+        : searchWhere;
 
     const [data, total] = await this.prisma.$transaction([
       this.prisma.pago.findMany({
