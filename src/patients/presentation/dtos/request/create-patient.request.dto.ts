@@ -33,4 +33,9 @@ export class CreatePatientRequestDto {
   @IsOptional()
   @IsString()
   alergiasCriticas?: string;
+
+  @ApiPropertyOptional({ example: 'Observaciones clínicas del paciente' })
+  @IsOptional()
+  @IsString()
+  observaciones?: string;
 }

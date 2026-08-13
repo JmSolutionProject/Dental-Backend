@@ -208,13 +208,14 @@ export class PatientsController {
       numeroDocumento: payload.numeroDocumento,
       telefonoWhatsapp: payload.telefonoWhatsapp,
       alergiasCriticas: payload.alergiasCriticas,
+      observaciones: payload.observaciones,
     });
 
     return this.toPatientResponse(patient);
   }
 
   @Put(':id')
-  @Roles('ADMIN', 'SECRETARIA')
+  @Roles('ADMIN', 'SECRETARIA', 'MEDICO')
   @ApiOperation({ summary: 'Actualizar datos del paciente' })
   @ApiBearerAuth()
   @ApiOkResponse()
@@ -231,6 +232,7 @@ export class PatientsController {
       numeroDocumento: payload.numeroDocumento,
       telefonoWhatsapp: payload.telefonoWhatsapp,
       alergiasCriticas: payload.alergiasCriticas,
+      observaciones: payload.observaciones,
       estado: payload.estado,
     });
 
@@ -273,7 +275,7 @@ export class PatientsController {
         conditions: [],
         medications: [],
       },
-      notes: '',
+      notes: patient.observaciones ?? '',
     };
   }
 }

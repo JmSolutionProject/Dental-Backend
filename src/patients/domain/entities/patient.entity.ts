@@ -6,6 +6,7 @@ export class PatientEntity {
   fechaNacimiento?: Date | null;
   telefonoWhatsapp?: string | null;
   alergiasCriticas?: string | null;
+  observaciones?: string | null;
   fechaRegistro?: Date;
   estado = true;
 
