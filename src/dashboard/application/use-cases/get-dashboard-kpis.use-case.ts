@@ -33,6 +33,7 @@ export class GetDashboardKpisUseCase {
       totalAppointments,
       topServices,
       revenueByMethod,
+      myCommissions,
     ] = await Promise.all([
       this.aggregateRevenue(startOfDay),
       this.aggregateRevenue(startOfMonth),
@@ -43,6 +44,7 @@ export class GetDashboardKpisUseCase {
       this.prisma.cita.count(),
       this.getTopServices(startOfMonth),
       this.getRevenueByMethod(startOfMonth),
+      isMedico ? this.calculateMyCommissions(userId, startOfMonth) : Promise.resolve(0),
     ]);
 
     return {
@@ -63,8 +65,45 @@ export class GetDashboardKpisUseCase {
       },
       topServices,
       revenueByMethod,
-      myCommissions: 0,
+      myCommissions,
     };
+  }
+
+  private async calculateMyCommissions(
+    userId: number,
+    since: Date,
+  ): Promise<number> {
+    const user = await this.prisma.usuario.findUnique({
+      where: { id: userId },
+      select: { porcentajeComision: true },
+    });
+
+    const porcentaje = Number(user?.porcentajeComision ?? 0);
+    if (porcentaje === 0) return 0;
+
+    const completedStatus = await this.prisma.estadoCita.findFirst({
+      where: {
+        nombreEstado: { contains: 'atend', mode: 'insensitive' },
+      },
+    });
+
+    if (!completedStatus) return 0;
+
+    const result = await this.prisma.pago.aggregate({
+      where: {
+        estado: true,
+        fechaPago: { gte: since },
+        cita: {
+          medicoId: userId,
+          estadoCitaId: completedStatus.id,
+        },
+      },
+      _sum: { montoPagado: true },
+    });
+
+    const totalPagos = Number(result._sum.montoPagado ?? 0);
+
+    return Math.round(totalPagos * (porcentaje / 100) * 100) / 100;
   }
 
   private async aggregateRevenue(since: Date): Promise<number> {
