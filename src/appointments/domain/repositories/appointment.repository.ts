@@ -5,6 +5,7 @@ export const APPOINTMENT_REPOSITORY = Symbol('APPOINTMENT_REPOSITORY');
 export interface FindAllAppointmentsParams {
   page: number;
   limit: number;
+  medicoId?: number;
 }
 
 export interface PaginatedAppointmentsResult {
