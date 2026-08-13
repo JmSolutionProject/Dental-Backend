@@ -38,9 +38,11 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
   async findAll(
     params: FindAllAppointmentsParams,
   ): Promise<PaginatedAppointmentsResult> {
-    const { page, limit } = params;
+    const { page, limit, medicoId } = params;
+    const where = medicoId ? { medicoId } : {};
     const [data, total] = await this.prisma.$transaction([
       this.prisma.cita.findMany({
+        where,
         orderBy: { fechaHoraInicio: 'asc' },
         skip: (page - 1) * limit,
         take: limit,
@@ -59,7 +61,7 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
           },
         },
       }),
-      this.prisma.cita.count(),
+      this.prisma.cita.count({ where }),
     ]);
 
     return {
