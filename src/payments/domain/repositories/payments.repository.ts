@@ -6,6 +6,7 @@ export interface FindAllPaymentsParams {
   page: number;
   limit: number;
   search?: string;
+  patientId?: number;
 }
 
 export interface PaginatedPaymentsResult {

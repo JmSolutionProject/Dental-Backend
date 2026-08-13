@@ -16,4 +16,9 @@ export class ListPaymentsRequestDto {
   @IsOptional()
   @IsString()
   search?: string;
+
+  @ApiPropertyOptional({ example: '1' })
+  @IsOptional()
+  @IsString()
+  patientId?: string;
 }

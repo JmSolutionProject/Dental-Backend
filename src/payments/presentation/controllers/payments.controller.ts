@@ -53,11 +53,13 @@ export class PaymentsController {
     const page = this.toPositiveNumber(query.page, 1);
     const limit = Math.min(this.toPositiveNumber(query.limit, 10), 100);
     const search = query.search?.trim() || undefined;
+    const patientId = query.patientId?.trim() || undefined;
 
     const result = await this.findAllPaymentsUseCase.execute({
       page,
       limit,
       search,
+      patientId: patientId ? Number(patientId) : undefined,
     });
 
     return {
