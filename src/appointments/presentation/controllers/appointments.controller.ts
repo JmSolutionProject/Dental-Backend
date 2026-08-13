@@ -20,8 +20,6 @@ import {
 import { JwtAuthGuard } from '@auth/infrastructure/guards/jwt-auth.guard';
 import { RolesGuard } from '@auth/infrastructure/guards/roles.guard';
 import { Roles } from '@auth/presentation/decorators/roles.decorator';
-import { CurrentUser } from '@auth/presentation/decorators/current-user.decorator';
-import type { AuthenticatedUser } from '@auth/domain/types/authenticated-user.type';
 import { CancelAppointmentUseCase } from '../../application/use-cases/cancel-appointment.use-case';
 import { CheckAvailabilityUseCase } from '../../application/use-cases/check-availability.use-case';
 import { CreateAppointmentUseCase } from '../../application/use-cases/create-appointment.use-case';
@@ -109,22 +107,13 @@ export class AppointmentsController {
   @ApiOperation({ summary: 'Listar citas' })
   @ApiBearerAuth()
   @ApiOkResponse()
-  async list(
-    @Query() query: Record<string, string | undefined>,
-    @CurrentUser() user: AuthenticatedUser | undefined,
-  ) {
+  async list(@Query() query: Record<string, string | undefined>) {
     const page = this.toPositiveNumber(query.page, 1);
     const limit = Math.min(this.toPositiveNumber(query.limit, 10), 100);
-
-    const isMedico = (user?.roles ?? []).some(
-      (role) => role.toUpperCase() === 'MEDICO',
-    );
-    const medicoId = isMedico && user?.id ? user.id : undefined;
 
     const result = await this.findAllAppointmentsUseCase.execute({
       page,
       limit,
-      medicoId,
     });
 
     return {
