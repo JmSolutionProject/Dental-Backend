@@ -46,6 +46,7 @@
     "pg": "^8.22.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "sharp": "^0.35.3",
     "swagger-ui-express": "^5.0.1",
     "tsconfig-paths": "^4.2.0"
   },
@@ -89,6 +90,7 @@
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "moduleNameMapper": {
+      "^(\\.{1,2}/.*)\\.js$": "$1",
       "^@/(.*)$": "<rootDir>/$1",
       "^@modules/(.*)$": "<rootDir>/$1",
       "^@auth/(.*)$": "<rootDir>/auth/$1",

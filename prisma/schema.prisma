@@ -61,6 +61,7 @@ model Paciente {
   pacientesCampana CampanaPaciente[]
   odontogramas     Odontograma[]
   planes           PlanTratamiento[]
+  adjuntos         Adjunto[]
 
   @@map("pacientes")
 }
@@ -84,6 +85,7 @@ model Servicio {
   precios        ServicioPrecio[]
   citasServicios CitaServicio[]
   planes         PlanTratamientoServicio[]
+  adjuntos       Adjunto[]
 
   @@map("servicios")
 }
@@ -341,4 +343,20 @@ model PlanTratamientoServicio {
   citas                Cita[]
 
   @@map("plan_tratamiento_servicios")
+}
+
+model Adjunto {
+  id            Int       @id @default(autoincrement())
+  pacienteId    Int       @map("paciente_id")
+  servicioId    Int?      @map("servicio_id")
+  descripcion   String?   @db.VarChar(255)
+  r2Key         String    @unique @map("r2_key") @db.VarChar(500)
+  fileName      String    @map("file_name") @db.VarChar(255)
+  mimeType      String    @map("mime_type") @db.VarChar(100)
+  size          Int
+  fechaRegistro DateTime  @default(now()) @map("fecha_registro")
+  paciente      Paciente  @relation(fields: [pacienteId], references: [id])
+  servicio      Servicio? @relation(fields: [servicioId], references: [id])
+
+  @@map("adjuntos")
 }

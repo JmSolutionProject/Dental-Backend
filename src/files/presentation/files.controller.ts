@@ -1,7 +1,10 @@
 import {
   BadRequestException,
+  Body,
   Controller,
+  Delete,
   Get,
+  Param,
   Post,
   Query,
   Res,
@@ -34,15 +37,26 @@ export class FilesController {
 
   @Post('upload')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Upload a file to Cloudflare R2' })
+  @ApiOperation({
+    summary: 'Upload a file to Cloudflare R2 (patient attachment)',
+  })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
-        file: {
+        file: { type: 'string', format: 'binary' },
+        patientId: {
           type: 'string',
-          format: 'binary',
+          description: 'ID del paciente (opcional)',
+        },
+        description: {
+          type: 'string',
+          description: 'Descripción corta del adjunto (opcional)',
+        },
+        servicioId: {
+          type: 'string',
+          description: 'ID del servicio al que pertenece (opcional)',
         },
       },
       required: ['file'],
@@ -50,18 +64,55 @@ export class FilesController {
   })
   @ApiCreatedResponse()
   @UseInterceptors(FileInterceptor('file'))
-  async upload(@UploadedFile() file?: Express.Multer.File) {
+  async upload(
+    @UploadedFile() file?: Express.Multer.File,
+    @Body('patientId') patientId?: string,
+    @Body('description') description?: string,
+    @Body('servicioId') servicioId?: string,
+  ) {
     if (!file) {
       throw new BadRequestException('File is required.');
     }
 
-    return this.filesService.upload(file);
+    return this.filesService.upload(file, {
+      patientId: this.toPositiveInt(patientId),
+      description,
+      servicioId: this.toPositiveInt(servicioId),
+    });
+  }
+
+  @Get('patient/:patientId')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List attachments of a patient' })
+  @ApiOkResponse()
+  async listByPatient(@Param('patientId') patientId: string) {
+    const id = this.toPositiveInt(patientId);
+
+    if (!id) {
+      throw new BadRequestException('Patient id inválido.');
+    }
+
+    return this.filesService.listByPatient(id);
+  }
+
+  @Delete(':id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete a patient attachment' })
+  @ApiOkResponse()
+  async remove(@Param('id') id: string) {
+    const attachmentId = this.toPositiveInt(id);
+
+    if (!attachmentId) {
+      throw new BadRequestException('Attachment id inválido.');
+    }
+
+    return this.filesService.deleteAdjunto(attachmentId);
   }
 
   @Get('image')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'View an image stored in Cloudflare R2' })
-  @ApiQuery({ name: 'key', example: 'uploads/file.png' })
+  @ApiQuery({ name: 'key', example: 'pacientes/1/file.webp' })
   @ApiOkResponse({ description: 'Image stream' })
   async getImage(
     @Query('key') key: string | undefined,
@@ -102,5 +153,15 @@ export class FilesController {
       ...image,
       viewUrl: `/api/files/image?key=${encodeURIComponent(image.key)}`,
     }));
+  }
+
+  private toPositiveInt(value: string | undefined): number | undefined {
+    if (!value) {
+      return undefined;
+    }
+
+    const number = Number(value);
+
+    return Number.isInteger(number) && number > 0 ? number : undefined;
   }
 }
