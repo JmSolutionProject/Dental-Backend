@@ -21,7 +21,7 @@ export class PrismaPatientRepository implements PatientRepository {
   async findAll(
     params: FindAllPatientsParams,
   ): Promise<PaginatedPatientsResult> {
-    const { page, limit, search, sortBy, sortDir } = params;
+    const { page, limit, search, sortBy, sortDir, medicoId } = params;
     const sortFields: Record<string, Prisma.PacienteOrderByWithRelationInput> =
       {
         firstName: { nombres: sortDir },
@@ -31,7 +31,7 @@ export class PrismaPatientRepository implements PatientRepository {
         id: { id: sortDir },
       };
 
-    const where: Prisma.PacienteWhereInput = search
+    const searchWhere: Prisma.PacienteWhereInput = search
       ? {
           OR: [
             { nombres: { contains: search, mode: 'insensitive' } },
@@ -40,6 +40,13 @@ export class PrismaPatientRepository implements PatientRepository {
           ],
         }
       : {};
+
+    const where: Prisma.PacienteWhereInput = medicoId
+      ? {
+          ...searchWhere,
+          citas: { some: { medicoId } },
+        }
+      : searchWhere;
 
     const [data, total] = await this.prisma.$transaction([
       this.prisma.paciente.findMany({

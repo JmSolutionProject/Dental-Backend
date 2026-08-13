@@ -20,11 +20,13 @@ import {
 import { JwtAuthGuard } from '@auth/infrastructure/guards/jwt-auth.guard';
 import { RolesGuard } from '@auth/infrastructure/guards/roles.guard';
 import { Roles } from '@auth/presentation/decorators/roles.decorator';
+import { CurrentUser } from '@auth/presentation/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '@auth/domain/types/authenticated-user.type';
 import { CreatePatientUseCase } from '../../application/use-cases/create-patient.use-case';
 import { FindAllPatientsUseCase } from '../../application/use-cases/find-all-patients.use-case';
 import { FindPatientByIdUseCase } from '../../application/use-cases/find-patient-by-id.use-case';
-import { SoftDeletePatientUseCase } from '../../application/use-cases/soft-delete-patient.use-case';
 import { UpdatePatientUseCase } from '../../application/use-cases/update-patient.use-case';
+import { SoftDeletePatientUseCase } from '../../application/use-cases/soft-delete-patient.use-case';
 import { PatientEntity } from '../../domain/entities/patient.entity';
 import { CreatePatientRequestDto } from '../dtos/request/create-patient.request.dto';
 import { ListPatientsRequestDto } from '../dtos/request/list-patients.request.dto';
@@ -142,7 +144,10 @@ export class PatientsController {
   @ApiOperation({ summary: 'Listar pacientes paginados' })
   @ApiBearerAuth()
   @ApiOkResponse()
-  async list(@Query() query: ListPatientsRequestDto) {
+  async list(
+    @Query() query: ListPatientsRequestDto,
+    @CurrentUser() user?: AuthenticatedUser,
+  ) {
     const requestedPage = Number(query.page ?? 1);
     const requestedLimit = Number(query.limit ?? 10);
     const page = Number.isFinite(requestedPage)
@@ -152,12 +157,17 @@ export class PatientsController {
       ? Math.min(Math.max(requestedLimit, 1), 100)
       : 10;
 
+    const isMedico = user?.roles?.some(
+      (r) => r.toLowerCase() === 'medico',
+    );
+
     const result = await this.findAllPatientsUseCase.execute({
       page,
       limit,
       search: query.search?.trim(),
       sortBy: query.sortBy ?? 'id',
       sortDir: query.sortDir ?? 'asc',
+      medicoId: isMedico ? user!.id : undefined,
     });
 
     return {

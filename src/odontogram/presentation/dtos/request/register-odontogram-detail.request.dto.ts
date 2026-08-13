@@ -58,7 +58,6 @@ export class RegisterOdontogramDetailRequestDto {
   @ApiPropertyOptional({ example: 'vestibular' })
   @IsOptional()
   @IsString()
-  @IsNotEmpty()
   surface?: string;
 
   @ApiPropertyOptional({ example: 2 })
@@ -71,25 +70,21 @@ export class RegisterOdontogramDetailRequestDto {
   @ApiPropertyOptional({ example: 'caries' })
   @IsOptional()
   @IsString()
-  @IsNotEmpty()
   condition?: string;
 
   @ApiPropertyOptional({ example: 'Caries oclusal en pieza 16.' })
   @IsOptional()
   @IsString()
-  @IsNotEmpty()
   diagnostico?: string;
 
   @ApiPropertyOptional({ example: 'Evaluar restauracion con resina.' })
   @IsOptional()
   @IsString()
-  @IsNotEmpty()
   tratamientoRecomendado?: string;
 
   @ApiPropertyOptional({ example: 'Paciente refiere sensibilidad al frio.' })
   @IsOptional()
   @IsString()
-  @IsNotEmpty()
   observacion?: string;
 
   @ApiPropertyOptional({ example: 'Caries visible' })
@@ -100,6 +95,5 @@ export class RegisterOdontogramDetailRequestDto {
   @ApiPropertyOptional({ example: 'Odontograma inicial del paciente.' })
   @IsOptional()
   @IsString()
-  @IsNotEmpty()
   observacionGeneral?: string;
 }

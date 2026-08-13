@@ -8,6 +8,7 @@ export interface FindAllPatientsParams {
   search?: string;
   sortBy?: string;
   sortDir?: 'asc' | 'desc';
+  medicoId?: number;
 }
 
 export interface PaginatedPatientsResult {
