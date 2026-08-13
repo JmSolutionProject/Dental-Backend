@@ -9,11 +9,23 @@ export interface FindAllPaymentsParams {
   patientId?: number;
 }
 
+export interface PaymentSummary {
+  totalAmount: number;
+  totalPayments: number;
+  cashAmount: number;
+  cardAmount: number;
+  transferAmount: number;
+  digitalWalletAmount: number;
+  voidedAmount: number;
+}
+
 export interface PaginatedPaymentsResult {
   data: PaymentEntity[];
   total: number;
   page: number;
   limit: number;
+  summary: PaymentSummary;
+  paidAppointmentIds: number[];
 }
 
 export interface PaymentMethodResult {

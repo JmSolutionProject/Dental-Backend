@@ -67,6 +67,8 @@ export class PaymentsController {
       total: result.total,
       page: result.page,
       limit: result.limit,
+      summary: result.summary,
+      paidAppointmentIds: result.paidAppointmentIds,
     };
   }
 
@@ -178,6 +180,7 @@ export class PaymentsController {
       notes: payment.observacion ?? '',
       paidAt: payment.fechaPago.toISOString(),
       status: payment.estado ? 'active' : 'inactive',
+      planServicioId: payment.planServicioId ? String(payment.planServicioId) : null,
     };
   }
 
