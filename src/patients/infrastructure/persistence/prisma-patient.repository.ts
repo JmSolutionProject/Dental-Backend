@@ -129,6 +129,36 @@ export class PrismaPatientRepository implements PatientRepository {
     return this.toEntity(deleted);
   }
 
+  async deletePermanent(id: number): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.pago.deleteMany({ where: { cita: { pacienteId: id } } });
+
+      await tx.citaServicio.deleteMany({ where: { cita: { pacienteId: id } } });
+
+      await tx.mensajeEnvio.deleteMany({ where: { pacienteId: id } });
+
+      await tx.campanaPaciente.deleteMany({ where: { pacienteId: id } });
+
+      await tx.adjunto.deleteMany({ where: { pacienteId: id } });
+
+      await tx.odontogramaDetalle.deleteMany({
+        where: { odontograma: { pacienteId: id } },
+      });
+
+      await tx.planTratamientoServicio.deleteMany({
+        where: { plan: { pacienteId: id } },
+      });
+
+      await tx.odontograma.deleteMany({ where: { pacienteId: id } });
+
+      await tx.planTratamiento.deleteMany({ where: { pacienteId: id } });
+
+      await tx.cita.deleteMany({ where: { pacienteId: id } });
+
+      await tx.paciente.delete({ where: { id } });
+    });
+  }
+
   private toEntity(
     patient: Prisma.PacienteGetPayload<Record<string, never>>,
   ): PatientEntity {

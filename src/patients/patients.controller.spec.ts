@@ -4,6 +4,7 @@ import { CreatePatientUseCase } from './application/use-cases/create-patient.use
 import { FindAllPatientsUseCase } from './application/use-cases/find-all-patients.use-case';
 import { FindPatientByIdUseCase } from './application/use-cases/find-patient-by-id.use-case';
 import { SoftDeletePatientUseCase } from './application/use-cases/soft-delete-patient.use-case';
+import { DeletePatientPermanentUseCase } from './application/use-cases/delete-patient-permanent.use-case';
 import { UpdatePatientUseCase } from './application/use-cases/update-patient.use-case';
 import { PatientsController } from './presentation/controllers/patients.controller';
 
@@ -38,6 +39,10 @@ describe('PatientsController', () => {
         },
         {
           provide: SoftDeletePatientUseCase,
+          useValue: { execute: jest.fn() },
+        },
+        {
+          provide: DeletePatientPermanentUseCase,
           useValue: { execute: jest.fn() },
         },
       ],

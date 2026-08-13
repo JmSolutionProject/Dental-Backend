@@ -4,6 +4,7 @@ import { CreatePatientUseCase } from './application/use-cases/create-patient.use
 import { FindAllPatientsUseCase } from './application/use-cases/find-all-patients.use-case';
 import { FindPatientByIdUseCase } from './application/use-cases/find-patient-by-id.use-case';
 import { SoftDeletePatientUseCase } from './application/use-cases/soft-delete-patient.use-case';
+import { DeletePatientPermanentUseCase } from './application/use-cases/delete-patient-permanent.use-case';
 import { UpdatePatientUseCase } from './application/use-cases/update-patient.use-case';
 import { PATIENT_REPOSITORY } from './domain/repositories/patient.repository';
 import { PrismaPatientRepository } from './infrastructure/persistence/prisma-patient.repository';
@@ -27,6 +28,7 @@ const jwtExpiresIn = Number(process.env.JWT_EXPIRES_IN ?? 86400);
     FindPatientByIdUseCase,
     UpdatePatientUseCase,
     SoftDeletePatientUseCase,
+    DeletePatientPermanentUseCase,
     {
       provide: PATIENT_REPOSITORY,
       useClass: PrismaPatientRepository,
