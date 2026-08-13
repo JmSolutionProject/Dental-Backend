@@ -34,6 +34,7 @@ export class GetDashboardKpisUseCase {
       topServices,
       revenueByMethod,
       myCommissions,
+      outstanding,
     ] = await Promise.all([
       this.aggregateRevenue(startOfDay),
       this.aggregateRevenue(startOfMonth),
@@ -45,13 +46,14 @@ export class GetDashboardKpisUseCase {
       this.getTopServices(startOfMonth),
       this.getRevenueByMethod(startOfMonth),
       isMedico ? this.calculateMyCommissions(userId, startOfMonth) : Promise.resolve(0),
+      this.calculateOutstanding(),
     ]);
 
     return {
       revenue: {
         today: revenueToday,
         month: revenueMonth,
-        outstanding: 0,
+        outstanding,
       },
       clinical: {
         appointmentsToday,
@@ -104,6 +106,44 @@ export class GetDashboardKpisUseCase {
     const totalPagos = Number(result._sum.montoPagado ?? 0);
 
     return Math.round(totalPagos * (porcentaje / 100) * 100) / 100;
+  }
+
+  private async calculateOutstanding(): Promise<number> {
+    const plans = await this.prisma.planTratamiento.findMany({
+      include: {
+        servicios: {
+          include: {
+            servicio: {
+              include: {
+                precios: {
+                  where: { estado: true },
+                  orderBy: { fechaInicio: 'desc' },
+                  take: 1,
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const planTotal = plans.reduce((total, plan) => {
+      const servicesTotal = plan.servicios.reduce((sum, item) => {
+        const precio = Number(item.servicio.precios[0]?.precio ?? 0);
+        const descuento = Number(item.descuento ?? 0);
+        return sum + Math.max(0, precio * item.cantidad - descuento);
+      }, 0);
+      return total + servicesTotal;
+    }, 0);
+
+    const planPayments = await this.prisma.pago.aggregate({
+      where: { estado: true, cita: { planServicioId: { not: null } } },
+      _sum: { montoPagado: true },
+    });
+
+    const totalPaid = Number(planPayments._sum.montoPagado ?? 0);
+
+    return Math.max(0, planTotal - totalPaid);
   }
 
   private async aggregateRevenue(since: Date): Promise<number> {
