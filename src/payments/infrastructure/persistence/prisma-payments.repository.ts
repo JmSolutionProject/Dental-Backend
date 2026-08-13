@@ -6,6 +6,7 @@ import {
   CreatePaymentParams,
   FindAllPaymentsParams,
   PaginatedPaymentsResult,
+  PaymentSummary,
   PaymentsRepository,
   UpdatePaymentParams,
 } from '../../domain/repositories/payments.repository';
@@ -39,7 +40,7 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
           }
         : searchWhere;
 
-    const [data, total] = await this.prisma.$transaction([
+    const [data, total, aggregate] = await this.prisma.$transaction([
       this.prisma.pago.findMany({
         where,
         orderBy: { fechaPago: 'desc' },
@@ -48,6 +49,14 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
         include: { metodoPago: true, usuarioCobrador: true, cita: true },
       }),
       this.prisma.pago.count({ where }),
+      this.prisma.pago.findMany({
+        where: { ...(where ?? {}), estado: true },
+        select: {
+          citaId: true,
+          montoPagado: true,
+          metodoPago: { select: { nombreMetodo: true } },
+        },
+      }),
     ]);
 
     return {
@@ -55,7 +64,64 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
       total,
       page,
       limit,
+      summary: this.buildSummary(aggregate),
+      paidAppointmentIds: [...new Set(aggregate.map((p) => p.citaId))],
     };
+  }
+
+  private buildSummary(
+    payments: Array<{
+      citaId: number;
+      montoPagado: { toString(): string } | number;
+      metodoPago: { nombreMetodo: string };
+    }>,
+  ): PaymentSummary {
+    const summary: PaymentSummary = {
+      totalAmount: 0,
+      totalPayments: 0,
+      cashAmount: 0,
+      cardAmount: 0,
+      transferAmount: 0,
+      digitalWalletAmount: 0,
+      voidedAmount: 0,
+    };
+
+    for (const payment of payments) {
+      const amount = Number(payment.montoPagado.toString());
+      const name = payment.metodoPago.nombreMetodo.toLowerCase();
+
+      summary.totalPayments += 1;
+      summary.totalAmount += amount;
+
+      if (name.includes('efectivo') || name.includes('cash')) {
+        summary.cashAmount += amount;
+      } else if (
+        name.includes('tarjeta') ||
+        name.includes('card') ||
+        name.includes('pos') ||
+        name.includes('visa') ||
+        name.includes('mastercard')
+      ) {
+        summary.cardAmount += amount;
+      } else if (
+        name.includes('transfer') ||
+        name.includes('banco') ||
+        name.includes('deposito')
+      ) {
+        summary.transferAmount += amount;
+      } else if (
+        name.includes('yape') ||
+        name.includes('plin') ||
+        name.includes('billetera') ||
+        name.includes('qr')
+      ) {
+        summary.digitalWalletAmount += amount;
+      } else {
+        summary.cashAmount += amount;
+      }
+    }
+
+    return summary;
   }
 
   async findById(id: number): Promise<PaymentEntity | null> {
@@ -136,6 +202,7 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
       estado: payment.estado,
       metodoPagoName: payment.metodoPago.nombreMetodo,
       usuarioCobradorName: payment.usuarioCobrador.nombreCompleto,
+      planServicioId: payment.cita?.planServicioId ?? null,
     });
   }
 

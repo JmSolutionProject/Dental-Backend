@@ -10,6 +10,7 @@ export class PaymentEntity {
   estado = true;
   metodoPagoName?: string;
   usuarioCobradorName?: string;
+  planServicioId?: number | null;
 
   constructor(partial: Partial<PaymentEntity> = {}) {
     Object.assign(this, partial);

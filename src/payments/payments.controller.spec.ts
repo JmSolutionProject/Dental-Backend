@@ -83,6 +83,16 @@ describe('PaymentsController', () => {
       total: 25,
       page: 2,
       limit: 10,
+      summary: {
+        totalAmount: 120,
+        totalPayments: 1,
+        cashAmount: 0,
+        cardAmount: 0,
+        transferAmount: 0,
+        digitalWalletAmount: 120,
+        voidedAmount: 0,
+      },
+      paidAppointmentIds: [8],
     });
 
     const result = await controller.list({
@@ -110,11 +120,22 @@ describe('PaymentsController', () => {
           notes: 'Pago parcial',
           paidAt: paidAt.toISOString(),
           status: 'active',
+          planServicioId: null,
         },
       ],
       total: 25,
       page: 2,
       limit: 10,
+      summary: {
+        totalAmount: 120,
+        totalPayments: 1,
+        cashAmount: 0,
+        cardAmount: 0,
+        transferAmount: 0,
+        digitalWalletAmount: 120,
+        voidedAmount: 0,
+      },
+      paidAppointmentIds: [8],
     });
   });
 
