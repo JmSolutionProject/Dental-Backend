@@ -27,6 +27,7 @@ import { FindAllPatientsUseCase } from '../../application/use-cases/find-all-pat
 import { FindPatientByIdUseCase } from '../../application/use-cases/find-patient-by-id.use-case';
 import { UpdatePatientUseCase } from '../../application/use-cases/update-patient.use-case';
 import { SoftDeletePatientUseCase } from '../../application/use-cases/soft-delete-patient.use-case';
+import { DeletePatientPermanentUseCase } from '../../application/use-cases/delete-patient-permanent.use-case';
 import { PatientEntity } from '../../domain/entities/patient.entity';
 import { CreatePatientRequestDto } from '../dtos/request/create-patient.request.dto';
 import { ListPatientsRequestDto } from '../dtos/request/list-patients.request.dto';
@@ -69,6 +70,7 @@ export class PatientsController {
     private readonly findPatientByIdUseCase: FindPatientByIdUseCase,
     private readonly updatePatientUseCase: UpdatePatientUseCase,
     private readonly softDeletePatientUseCase: SoftDeletePatientUseCase,
+    private readonly deletePatientPermanentUseCase: DeletePatientPermanentUseCase,
   ) {}
 
   @Get('reniec/:dni')
@@ -250,6 +252,19 @@ export class PatientsController {
     const patient = await this.softDeletePatientUseCase.execute(Number(id));
 
     return this.toPatientResponse(patient);
+  }
+
+  @Delete(':id/permanent')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Eliminar paciente y todos sus registros relacionados' })
+  @ApiBearerAuth()
+  @ApiOkResponse()
+  async removePermanent(@Param('id') id: string) {
+    await this.ensurePatientExists(Number(id));
+
+    await this.deletePatientPermanentUseCase.execute(Number(id));
+
+    return { id, deleted: true };
   }
 
   private async ensurePatientExists(id: number): Promise<void> {

@@ -46,4 +46,5 @@ export interface PatientRepository {
   create(patient: CreatePatientParams): Promise<PatientEntity>;
   update(id: number, patient: UpdatePatientParams): Promise<PatientEntity>;
   softDelete(id: number): Promise<PatientEntity>;
+  deletePermanent(id: number): Promise<void>;
 }
