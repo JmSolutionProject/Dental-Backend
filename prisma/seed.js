@@ -116,6 +116,7 @@ async function main() {
   await ensureEstadoCita('Confirmada');
   await ensureEstadoCita('En curso');
   await ensureEstadoCita('Finalizada');
+  await ensureEstadoCita('Atendida');
   await ensureEstadoCita('Cancelada');
   await ensureEstadoCita('No asistio');
 

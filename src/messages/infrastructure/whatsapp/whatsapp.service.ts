@@ -66,7 +66,9 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
         syncFullHistory: false,
       });
 
-      this.socket.ev.on('creds.update', saveCreds);
+      this.socket.ev.on('creds.update', () => {
+        void saveCreds();
+      });
       this.socket.ev.on('connection.update', (update) => {
         if (update.qr) {
           this.latestQr = update.qr;

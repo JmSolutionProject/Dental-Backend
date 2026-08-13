@@ -25,6 +25,7 @@ export interface CreatePatientParams {
   fechaNacimiento?: string | null;
   telefonoWhatsapp?: string | null;
   alergiasCriticas?: string | null;
+  observaciones?: string | null;
 }
 
 export interface UpdatePatientParams {
@@ -34,6 +35,7 @@ export interface UpdatePatientParams {
   fechaNacimiento?: string | null;
   telefonoWhatsapp?: string | null;
   alergiasCriticas?: string | null;
+  observaciones?: string | null;
   estado?: boolean;
 }
 

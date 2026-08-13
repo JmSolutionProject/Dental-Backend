@@ -36,5 +36,6 @@ const jwtExpiresIn = Number(process.env.JWT_EXPIRES_IN ?? 86400);
       useClass: PrismaAppointmentRepository,
     },
   ],
+  exports: [APPOINTMENT_REPOSITORY],
 })
 export class AppointmentsModule {}

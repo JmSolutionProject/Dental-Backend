@@ -52,6 +52,7 @@ model Paciente {
   fechaNacimiento  DateTime? @map("fecha_nacimiento") @db.Date
   telefonoWhatsapp String?   @map("telefono_whatsapp") @db.VarChar(20)
   alergiasCriticas String?   @map("alergias_criticas") @db.Text
+  observaciones    String?   @map("observaciones") @db.Text
   fechaRegistro    DateTime  @default(now()) @map("fecha_registro")
   estado           Boolean   @default(true)
 

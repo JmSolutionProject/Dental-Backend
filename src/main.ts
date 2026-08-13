@@ -78,7 +78,10 @@ async function createServer(): Promise<(req: Request, res: Response) => void> {
   configureApp(app);
   await app.init();
 
-  return app.getHttpAdapter().getInstance();
+  return app.getHttpAdapter().getInstance() as (
+    req: Request,
+    res: Response,
+  ) => void;
 }
 
 async function bootstrap(): Promise<void> {

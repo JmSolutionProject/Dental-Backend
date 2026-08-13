@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { CancelAppointmentUseCase } from './application/use-cases/cancel-appointment.use-case';
 import { CheckAvailabilityUseCase } from './application/use-cases/check-availability.use-case';
 import { CreateAppointmentUseCase } from './application/use-cases/create-appointment.use-case';
+import { DeleteAppointmentUseCase } from './application/use-cases/delete-appointment.use-case';
 import { FindAllAppointmentsUseCase } from './application/use-cases/find-all-appointments.use-case';
 import { FindAppointmentByIdUseCase } from './application/use-cases/find-appointment-by-id.use-case';
 import { UpdateAppointmentUseCase } from './application/use-cases/update-appointment.use-case';
@@ -35,6 +36,10 @@ describe('AppointmentsController', () => {
         },
         {
           provide: UpdateAppointmentUseCase,
+          useValue: { execute: jest.fn() },
+        },
+        {
+          provide: DeleteAppointmentUseCase,
           useValue: { execute: jest.fn() },
         },
         {
