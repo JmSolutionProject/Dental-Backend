@@ -42,8 +42,13 @@ type PatientOdontogram = {
   patientId: string;
   quadrant: 'adult';
   teeth: Array<{
+    detailId: number;
     fdiNumber: number;
     condition: string;
+    stateId: number;
+    stateName: string;
+    diagnosis: string | null;
+    recommendedTreatment: string | null;
     notes: string;
   }>;
 };
@@ -64,7 +69,7 @@ type OdontogramWithDetails = Prisma.OdontogramaGetPayload<{
 @Controller('odontogram')
 export class OdontogramController {
   @Get('teeth')
-  @Roles('ADMIN', 'MEDICO')
+  @Roles('ADMIN', 'SECRETARIA', 'MEDICO')
   @ApiOperation({ summary: 'Lista el catalogo base de piezas dentales.' })
   @ApiOkResponse({ type: DentalPieceResponseDto, isArray: true })
   @ApiBearerAuth()
@@ -73,7 +78,7 @@ export class OdontogramController {
   }
 
   @Get('surfaces')
-  @Roles('ADMIN', 'MEDICO')
+  @Roles('ADMIN', 'SECRETARIA', 'MEDICO')
   @ApiOperation({ summary: 'Lista las superficies dentales disponibles.' })
   @ApiOkResponse({ type: DentalSurfaceResponseDto, isArray: true })
   @ApiBearerAuth()
@@ -82,7 +87,7 @@ export class OdontogramController {
   }
 
   @Get('states')
-  @Roles('ADMIN', 'MEDICO')
+  @Roles('ADMIN', 'SECRETARIA', 'MEDICO')
   @ApiOperation({
     summary: 'Lista los estados clinicos disponibles para una pieza dental.',
   })
@@ -799,8 +804,13 @@ export class PatientOdontogramsController {
       patientId,
       quadrant: 'adult',
       teeth: odontogram.detalles.map((detail) => ({
+        detailId: detail.id,
         fdiNumber: Number(detail.piezaDental.codigoFdi),
         condition: detail.diagnostico ?? detail.estadoPieza.nombreEstado,
+        stateId: detail.estadoPiezaId,
+        stateName: detail.estadoPieza.nombreEstado,
+        diagnosis: detail.diagnostico,
+        recommendedTreatment: detail.tratamientoRecomendado,
         notes: detail.observacion ?? '',
       })),
     };

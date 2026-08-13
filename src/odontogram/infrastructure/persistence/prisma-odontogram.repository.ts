@@ -29,6 +29,7 @@ const TOOTH_STATES: ToothState[] = [
   { id: 4, nombreEstado: 'Ausente' },
   { id: 5, nombreEstado: 'Endodoncia' },
   { id: 6, nombreEstado: 'Corona' },
+  { id: 7, nombreEstado: 'Curado' },
 ];
 
 @Injectable()
