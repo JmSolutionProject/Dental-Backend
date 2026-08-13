@@ -1,4 +1,5 @@
 import {
+  DeleteObjectCommand,
   GetObjectCommand,
   type GetObjectCommandOutput,
   ListObjectsV2Command,
@@ -135,6 +136,17 @@ export class R2Service {
     } while (continuationToken);
 
     return objects;
+  }
+
+  async deleteObject(key: string): Promise<void> {
+    const config = this.getConfig();
+
+    await this.getClient(config).send(
+      new DeleteObjectCommand({
+        Bucket: config.bucketName,
+        Key: key,
+      }),
+    );
   }
 
   private getClient(config: R2Config): R2Client {
