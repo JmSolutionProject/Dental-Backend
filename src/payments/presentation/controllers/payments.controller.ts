@@ -45,7 +45,7 @@ export class PaymentsController {
   ) {}
 
   @Get()
-  @Roles('ADMIN', 'SECRETARIA')
+  @Roles('ADMIN', 'SECRETARIA', 'MEDICO')
   @ApiOperation({ summary: 'Listar pagos' })
   @ApiBearerAuth()
   @ApiOkResponse()
@@ -73,7 +73,7 @@ export class PaymentsController {
   }
 
   @Get('methods')
-  @Roles('ADMIN', 'SECRETARIA')
+  @Roles('ADMIN', 'SECRETARIA', 'MEDICO')
   @ApiOperation({ summary: 'Listar métodos de pago' })
   @ApiBearerAuth()
   @ApiOkResponse()
