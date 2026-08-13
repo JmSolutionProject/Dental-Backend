@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import { AppointmentsModule } from '../appointments/appointments.module';
 import { CreatePaymentUseCase } from './application/use-cases/create-payment.use-case';
 import { FindAllPaymentsUseCase } from './application/use-cases/find-all-payments.use-case';
 import { FindAllPaymentMethodsUseCase } from './application/use-cases/find-all-payment-methods.use-case';
@@ -20,6 +21,7 @@ const jwtExpiresIn = Number(process.env.JWT_EXPIRES_IN ?? 86400);
         expiresIn: jwtExpiresIn,
       },
     }),
+    AppointmentsModule,
   ],
   controllers: [PaymentsController],
   providers: [

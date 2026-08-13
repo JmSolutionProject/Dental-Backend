@@ -20,7 +20,7 @@ type AppointmentWithRelations = Prisma.CitaGetPayload<{
     servicios: {
       include: {
         servicio: {
-          include: { precios: { orderBy: { fechaInicio: 'desc' }, take: 1 } };
+          include: { precios: { orderBy: { fechaInicio: 'desc' }; take: 1 } };
         };
       };
     };
@@ -51,7 +51,9 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
           servicios: {
             include: {
               servicio: {
-                include: { precios: { orderBy: { fechaInicio: 'desc' }, take: 1 } },
+                include: {
+                  precios: { orderBy: { fechaInicio: 'desc' }, take: 1 },
+                },
               },
             },
           },
@@ -78,7 +80,9 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
         servicios: {
           include: {
             servicio: {
-              include: { precios: { orderBy: { fechaInicio: 'desc' }, take: 1 } },
+              include: {
+                precios: { orderBy: { fechaInicio: 'desc' }, take: 1 },
+              },
             },
           },
         },
@@ -119,7 +123,9 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
           servicios: {
             include: {
               servicio: {
-                include: { precios: { orderBy: { fechaInicio: 'desc' }, take: 1 } },
+                include: {
+                  precios: { orderBy: { fechaInicio: 'desc' }, take: 1 },
+                },
               },
             },
           },
@@ -164,7 +170,9 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
         servicios: {
           include: {
             servicio: {
-              include: { precios: { orderBy: { fechaInicio: 'desc' }, take: 1 } },
+              include: {
+                precios: { orderBy: { fechaInicio: 'desc' }, take: 1 },
+              },
             },
           },
         },
@@ -192,7 +200,9 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
         servicios: {
           include: {
             servicio: {
-              include: { precios: { orderBy: { fechaInicio: 'desc' }, take: 1 } },
+              include: {
+                precios: { orderBy: { fechaInicio: 'desc' }, take: 1 },
+              },
             },
           },
         },
@@ -200,6 +210,11 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
     });
 
     return this.toEntity(cancelled);
+  }
+
+  async markAsAttended(id: number): Promise<AppointmentEntity> {
+    const attendedStatus = await this.resolveStatus('Atendida');
+    return this.update(id, { estadoCitaId: attendedStatus.id });
   }
 
   async delete(id: number): Promise<void> {
@@ -225,7 +240,9 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
         servicios: {
           include: {
             servicio: {
-              include: { precios: { orderBy: { fechaInicio: 'desc' }, take: 1 } },
+              include: {
+                precios: { orderBy: { fechaInicio: 'desc' }, take: 1 },
+              },
             },
           },
         },
@@ -276,7 +293,9 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
     const status = await this.prisma.estadoCita.findUnique({
       where: { id: estadoCitaId },
     });
-    const isFinalized = status?.nombreEstado === 'Finalizada';
+    const normalizedStatus = status?.nombreEstado?.trim().toLowerCase() ?? '';
+    const isFinalized =
+      normalizedStatus === 'finalizada' || normalizedStatus === 'atendida';
 
     await this.prisma.planTratamientoServicio.update({
       where: { id: planServicioId },
