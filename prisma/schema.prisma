@@ -53,6 +53,7 @@ model Paciente {
   telefonoWhatsapp String?   @map("telefono_whatsapp") @db.VarChar(20)
   alergiasCriticas String?   @map("alergias_criticas") @db.Text
   observaciones    String?   @map("observaciones") @db.Text
+  aceptaRecordatorios Boolean @default(false) @map("acepta_recordatorios")
   fechaRegistro    DateTime  @default(now()) @map("fecha_registro")
   estado           Boolean   @default(true)
 
@@ -121,6 +122,7 @@ model Cita {
   motivoPrincipal String?                  @map("motivo_principal") @db.VarChar(200)
   observaciones   String?                  @db.Text
   fechaRegistro   DateTime                 @default(now()) @map("fecha_registro")
+  recordatorioEnviado Boolean              @default(false) @map("recordatorio_enviado")
   paciente        Paciente                 @relation(fields: [pacienteId], references: [id])
   medico          Usuario                  @relation("CitasMedico", fields: [medicoId], references: [id])
   estadoCita      EstadoCita               @relation(fields: [estadoCitaId], references: [id])
@@ -359,4 +361,11 @@ model Adjunto {
   servicio      Servicio? @relation(fields: [servicioId], references: [id])
 
   @@map("adjuntos")
+}
+
+model Configuracion {
+  clave String @id
+  valor String @db.Text
+
+  @@map("configuraciones")
 }

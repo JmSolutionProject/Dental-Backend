@@ -87,6 +87,7 @@ export class PrismaPatientRepository implements PatientRepository {
         telefonoWhatsapp: patient.telefonoWhatsapp ?? null,
         alergiasCriticas: patient.alergiasCriticas ?? null,
         observaciones: patient.observaciones ?? null,
+        aceptaRecordatorios: patient.aceptaRecordatorios ?? false,
         estado: true,
       },
     });
@@ -113,6 +114,7 @@ export class PrismaPatientRepository implements PatientRepository {
         telefonoWhatsapp: patient.telefonoWhatsapp,
         alergiasCriticas: patient.alergiasCriticas,
         observaciones: patient.observaciones,
+        aceptaRecordatorios: patient.aceptaRecordatorios,
         estado: patient.estado,
       },
     });
@@ -171,6 +173,7 @@ export class PrismaPatientRepository implements PatientRepository {
       telefonoWhatsapp: patient.telefonoWhatsapp,
       alergiasCriticas: patient.alergiasCriticas,
       observaciones: patient.observaciones,
+      aceptaRecordatorios: patient.aceptaRecordatorios,
       fechaRegistro: patient.fechaRegistro,
       estado: patient.estado,
     });

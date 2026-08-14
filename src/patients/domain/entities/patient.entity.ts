@@ -7,6 +7,7 @@ export class PatientEntity {
   telefonoWhatsapp?: string | null;
   alergiasCriticas?: string | null;
   observaciones?: string | null;
+  aceptaRecordatorios = false;
   fechaRegistro?: Date;
   estado = true;
 

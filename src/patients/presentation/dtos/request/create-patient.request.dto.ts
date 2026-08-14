@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsDateString, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsDateString, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CreatePatientRequestDto {
   @ApiProperty({ example: 'Juan' })
@@ -38,4 +38,9 @@ export class CreatePatientRequestDto {
   @IsOptional()
   @IsString()
   observaciones?: string;
+
+  @ApiPropertyOptional({ example: true, description: 'Acepta recibir recordatorios por WhatsApp' })
+  @IsOptional()
+  @IsBoolean()
+  aceptaRecordatorios?: boolean;
 }

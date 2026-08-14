@@ -42,6 +42,7 @@ type PatientResponse = {
   email: string;
   birthDate: string | null;
   status: 'active' | 'inactive';
+  acceptReminders: boolean;
   medicalHistory: {
     allergies: string[];
     conditions: string[];
@@ -211,6 +212,7 @@ export class PatientsController {
       telefonoWhatsapp: payload.telefonoWhatsapp,
       alergiasCriticas: payload.alergiasCriticas,
       observaciones: payload.observaciones,
+      aceptaRecordatorios: payload.aceptaRecordatorios,
     });
 
     return this.toPatientResponse(patient);
@@ -235,6 +237,7 @@ export class PatientsController {
       telefonoWhatsapp: payload.telefonoWhatsapp,
       alergiasCriticas: payload.alergiasCriticas,
       observaciones: payload.observaciones,
+      aceptaRecordatorios: payload.aceptaRecordatorios,
       estado: payload.estado,
     });
 
@@ -285,6 +288,7 @@ export class PatientsController {
       email: '',
       birthDate: patient.fechaNacimiento?.toISOString().slice(0, 10) ?? null,
       status: patient.estado ? 'active' : 'inactive',
+      acceptReminders: patient.aceptaRecordatorios ?? false,
       medicalHistory: {
         allergies: patient.alergiasCriticas ? [patient.alergiasCriticas] : [],
         conditions: [],

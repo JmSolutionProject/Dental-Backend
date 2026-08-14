@@ -14,6 +14,7 @@ import { UsersModule } from './users/users.module';
 import { TreatmentPlansModule } from './treatment-plans/treatment-plans.module';
 import { PrismaModule } from './shared/infrastructure/persistence/prisma/prisma.module';
 import { FilesModule } from './files/files.module';
+import { ConfigModule } from './config/config.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { FilesModule } from './files/files.module';
     UsersModule,
     TreatmentPlansModule,
     FilesModule,
+    ConfigModule,
   ],
   controllers: [AppController],
   providers: [AppService],
