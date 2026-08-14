@@ -104,4 +104,13 @@ export class UsersController {
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.manageUsers.remove(id);
   }
+
+  @Delete(':id/permanent')
+  @Roles('ADMIN')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Eliminar usuario y sus registros relacionados' })
+  @ApiOkResponse()
+  removePermanent(@Param('id', ParseIntPipe) id: number) {
+    return this.manageUsers.deletePermanent(id);
+  }
 }
