@@ -21,10 +21,22 @@ function getAllowedOrigins(): string[] {
     .filter(Boolean);
 }
 
+function isOriginAllowed(origin: string | undefined): boolean {
+  if (typeof origin !== 'string' || origin.length === 0) {
+    return false;
+  }
+
+  if (getAllowedOrigins().includes(origin)) {
+    return true;
+  }
+
+  return origin.endsWith('.vercel.app');
+}
+
 function applyCorsHeaders(req: Request, res: Response): void {
   const origin = req.headers.origin;
 
-  if (typeof origin === 'string' && getAllowedOrigins().includes(origin)) {
+  if (typeof origin === 'string' && isOriginAllowed(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Vary', 'Origin');
   }
@@ -42,7 +54,7 @@ function applyCorsHeaders(req: Request, res: Response): void {
 
 function configureApp(app: INestApplication): void {
   app.enableCors({
-    origin: getAllowedOrigins(),
+    origin: (origin, callback) => callback(null, isOriginAllowed(origin)),
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
