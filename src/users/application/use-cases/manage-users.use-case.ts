@@ -168,4 +168,48 @@ export class ManageUsersUseCase {
 
     return this.findById(id);
   }
+
+  async deletePermanent(id: number): Promise<{ id: number; deleted: boolean }> {
+    const user = await this.prisma.usuario.findUnique({
+      where: { id },
+      include: { roles: { include: { rol: true } } },
+    });
+    if (!user) throw new NotFoundException('Usuario no encontrado.');
+
+    const isAdmin = user.roles.some(
+      (ur) => ur.rol.estado && ur.rol.nombreRol.toUpperCase() === 'ADMIN',
+    );
+    if (isAdmin) {
+      const adminCount = await this.prisma.usuario.count({
+        where: {
+          estado: true,
+          roles: { some: { rol: { nombreRol: 'ADMIN', estado: true } } },
+        },
+      });
+      if (adminCount <= 1) {
+        throw new BadRequestException(
+          'No se puede eliminar el último administrador.',
+        );
+      }
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.pago.deleteMany({ where: { usuarioCobradorId: id } });
+      await tx.pago.deleteMany({ where: { cita: { medicoId: id } } });
+      await tx.citaServicio.deleteMany({ where: { cita: { medicoId: id } } });
+      await tx.planTratamientoServicio.deleteMany({
+        where: { plan: { medicoId: id } },
+      });
+      await tx.planTratamiento.deleteMany({ where: { medicoId: id } });
+      await tx.campanaPaciente.deleteMany({
+        where: { campana: { usuarioCreadorId: id } },
+      });
+      await tx.campanaWhatsapp.deleteMany({ where: { usuarioCreadorId: id } });
+      await tx.cita.deleteMany({ where: { medicoId: id } });
+      await tx.usuarioRol.deleteMany({ where: { usuarioId: id } });
+      await tx.usuario.delete({ where: { id } });
+    });
+
+    return { id, deleted: true };
+  }
 }

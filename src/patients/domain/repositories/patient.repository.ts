@@ -26,6 +26,7 @@ export interface CreatePatientParams {
   telefonoWhatsapp?: string | null;
   alergiasCriticas?: string | null;
   observaciones?: string | null;
+  aceptaRecordatorios?: boolean;
 }
 
 export interface UpdatePatientParams {
@@ -36,6 +37,7 @@ export interface UpdatePatientParams {
   telefonoWhatsapp?: string | null;
   alergiasCriticas?: string | null;
   observaciones?: string | null;
+  aceptaRecordatorios?: boolean;
   estado?: boolean;
 }
 
