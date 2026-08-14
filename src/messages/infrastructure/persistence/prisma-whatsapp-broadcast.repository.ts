@@ -30,7 +30,13 @@ export class PrismaWhatsappBroadcastRepository
 
     const patients = await this.prisma.paciente.findMany({
       where: { id: { in: patientIds }, estado: true },
-      select: { id: true, telefonoWhatsapp: true },
+      select: {
+        id: true,
+        telefonoWhatsapp: true,
+        nombres: true,
+        apellidos: true,
+        numeroDocumento: true,
+      },
     });
 
     const foundIds = new Set(patients.map((patient) => patient.id));
@@ -67,7 +73,7 @@ export class PrismaWhatsappBroadcastRepository
           pacienteId: patient.id,
           estadoEnvioId: pendingStatusId,
           telefonoWhatsapp: patient.telefonoWhatsapp,
-          contenido: params.contenido,
+          contenido: this.renderContent(params.contenido, patient),
           mediaKey: params.mediaKey,
           mediaName: params.mediaName,
           mediaMimeType: params.mediaMimeType,
@@ -326,5 +332,28 @@ export class PrismaWhatsappBroadcastRepository
     });
 
     return status.id;
+  }
+
+  private renderContent(
+    content: string,
+    patient: {
+      nombres: string;
+      apellidos: string;
+      telefonoWhatsapp: string | null;
+      numeroDocumento: string | null;
+    },
+  ): string {
+    const values: Record<string, string> = {
+      nombre: patient.nombres?.trim() ?? '',
+      apellido: patient.apellidos?.trim() ?? '',
+      telefono: patient.telefonoWhatsapp ?? '',
+      documento: patient.numeroDocumento ?? '',
+      fecha: new Date().toLocaleDateString('es-PE'),
+    };
+
+    return content.replace(
+      /{{\s*(nombre|apellido|telefono|documento|fecha)\s*}}/gi,
+      (_, key: string) => values[key.toLowerCase()] ?? '',
+    );
   }
 }
