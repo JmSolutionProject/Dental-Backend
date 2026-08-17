@@ -30,7 +30,7 @@ export class ConfigController {
   }
 
   @Put('recordatorio')
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'SECRETARIA')
   @ApiOperation({ summary: 'Actualizar configuracion de recordatorios de citas' })
   @ApiOkResponse()
   updateRecordatorio(

@@ -4,6 +4,9 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { Readable } from 'node:stream';
 import makeWASocket, {
   Browsers,
   DisconnectReason,
@@ -13,6 +16,9 @@ import makeWASocket, {
   type WASocket,
 } from 'baileys';
 import { FilesService } from '@/files/infrastructure/files.service';
+import { R2Service } from '@/files/infrastructure/r2.service';
+
+const SESSION_PREFIX = 'whatsapp-session/';
 
 type WhatsappConnectionStatus =
   | 'disabled'
@@ -29,13 +35,17 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
     process.env.WHATSAPP_ENABLED === 'true' && !process.env.VERCEL;
   private socket: WASocket | null = null;
   private reconnecting = false;
+  private sessionRestored = false;
   private latestQr: string | null = null;
   private lastError: string | null = null;
   private status: WhatsappConnectionStatus = this.enabled
     ? 'initializing'
     : 'disabled';
 
-  constructor(private readonly filesService: FilesService) {}
+  constructor(
+    private readonly filesService: FilesService,
+    private readonly r2Service: R2Service,
+  ) {}
 
   async onModuleInit(): Promise<void> {
     if (!this.enabled) {
@@ -53,8 +63,12 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
       this.status = 'initializing';
       this.lastError = null;
 
-      const sessionPath =
-        process.env.WHATSAPP_BAILEYS_SESSION_PATH ?? '.baileys_auth';
+      const sessionPath = this.getSessionPath();
+      if (!this.sessionRestored) {
+        await this.restoreSessionFromR2(sessionPath);
+        this.sessionRestored = true;
+      }
+
       const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
       const { version } = await fetchLatestBaileysVersion();
 
@@ -67,7 +81,10 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
       });
 
       this.socket.ev.on('creds.update', () => {
-        void saveCreds();
+        void (async () => {
+          await saveCreds();
+          await this.persistSessionToR2(sessionPath);
+        })();
       });
       this.socket.ev.on('connection.update', (update) => {
         if (update.qr) {
@@ -233,6 +250,79 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
     } finally {
       this.reconnecting = false;
     }
+  }
+
+  private getSessionPath(): string {
+    return process.env.WHATSAPP_BAILEYS_SESSION_PATH ?? '.baileys_auth';
+  }
+
+  private async restoreSessionFromR2(sessionPath: string): Promise<void> {
+    try {
+      const objects = await this.r2Service.listObjects(SESSION_PREFIX);
+      if (objects.length === 0) {
+        return;
+      }
+
+      await mkdir(sessionPath, { recursive: true });
+
+      for (const object of objects) {
+        const filename = object.key.slice(SESSION_PREFIX.length);
+        if (!filename) {
+          continue;
+        }
+
+        try {
+          const file = await this.r2Service.getObject(object.key);
+          const buffer = await this.streamToBuffer(file.body);
+          await writeFile(join(sessionPath, filename), buffer);
+        } catch (error) {
+          this.logger.warn(
+            `No se pudo restaurar el archivo de sesión ${filename}: ${this.getErrorMessage(error)}`,
+          );
+        }
+      }
+
+      this.logger.log('Sesión de WhatsApp restaurada desde R2.');
+    } catch (error) {
+      this.logger.warn(
+        `No se pudo restaurar la sesión de WhatsApp desde R2: ${this.getErrorMessage(error)}`,
+      );
+    }
+  }
+
+  private async persistSessionToR2(sessionPath: string): Promise<void> {
+    try {
+      const files = await readdir(sessionPath);
+
+      for (const filename of files) {
+        try {
+          const buffer = await readFile(join(sessionPath, filename));
+          await this.r2Service.uploadObject({
+            key: `${SESSION_PREFIX}${filename}`,
+            body: buffer,
+            contentType: 'application/json',
+          });
+        } catch {
+          // Saltar archivos que aún se están escribiendo.
+        }
+      }
+    } catch (error) {
+      this.logger.warn(
+        `No se pudo persistir la sesión de WhatsApp en R2: ${this.getErrorMessage(error)}`,
+      );
+    }
+  }
+
+  private async streamToBuffer(stream: Readable): Promise<Buffer> {
+    const chunks: Buffer[] = [];
+
+    for await (const chunk of stream) {
+      chunks.push(
+        Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk as Uint8Array),
+      );
+    }
+
+    return Buffer.concat(chunks);
   }
 
   private getDisconnectStatusCode(error: unknown): number | undefined {

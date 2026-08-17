@@ -16,6 +16,6 @@ const jwtExpiresIn = Number(process.env.JWT_EXPIRES_IN ?? 86400);
   ],
   controllers: [FilesController],
   providers: [FilesService, R2Service, JwtAuthGuard],
-  exports: [FilesService],
+  exports: [FilesService, R2Service],
 })
 export class FilesModule {}
