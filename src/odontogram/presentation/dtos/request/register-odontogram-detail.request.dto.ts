@@ -1,6 +1,23 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsArray, IsInt, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
+
+export class OdontogramHistoryEntryDto {
+  @IsString()
+  condition!: string;
+
+  @IsOptional()
+  @IsString()
+  surface?: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @IsOptional()
+  @IsString()
+  date?: string;
+}
 
 export class RegisterOdontogramDetailRequestDto {
   @ApiPropertyOptional({ example: 1 })
@@ -96,4 +113,11 @@ export class RegisterOdontogramDetailRequestDto {
   @IsOptional()
   @IsString()
   observacionGeneral?: string;
+
+  @ApiPropertyOptional({ type: OdontogramHistoryEntryDto, isArray: true })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => OdontogramHistoryEntryDto)
+  history?: OdontogramHistoryEntryDto[];
 }

@@ -147,6 +147,7 @@ export class OdontogramController {
         piezaDental: true,
         superficie: true,
         estadoPieza: true,
+        historiales: { orderBy: { fechaRegistro: 'asc' } },
         odontograma: true,
       },
     });
@@ -170,6 +171,7 @@ export class OdontogramController {
         piezaDental: true,
         superficie: true,
         estadoPieza: true,
+        historiales: { orderBy: { fechaRegistro: 'asc' } },
         odontograma: true,
       },
     });
@@ -225,6 +227,7 @@ export class OdontogramController {
             piezaDental: true,
             superficie: true,
             estadoPieza: true,
+            historiales: { orderBy: { fechaRegistro: 'asc' } },
             odontograma: true,
           },
         })
@@ -238,11 +241,40 @@ export class OdontogramController {
             piezaDental: true,
             superficie: true,
             estadoPieza: true,
+            historiales: { orderBy: { fechaRegistro: 'asc' } },
             odontograma: true,
           },
         });
 
-    return this.toDetailResponse(detail);
+    if (payload.history) {
+      await this.prisma.odontogramaDetalleHistorial.deleteMany({
+        where: { odontogramaDetalleId: detail.id },
+      });
+
+      if (payload.history.length > 0) {
+        await this.prisma.odontogramaDetalleHistorial.createMany({
+          data: payload.history.map((entry) => ({
+            odontogramaDetalleId: detail.id,
+            condicion: entry.condition,
+            superficie: entry.surface ?? null,
+            observacion: entry.notes ?? null,
+          })),
+        });
+      }
+    }
+
+    const detailWithHistory = await this.prisma.odontogramaDetalle.findUniqueOrThrow({
+      where: { id: detail.id },
+      include: {
+        piezaDental: true,
+        superficie: true,
+        estadoPieza: true,
+        historiales: { orderBy: { fechaRegistro: 'asc' } },
+        odontograma: true,
+      },
+    });
+
+    return this.toDetailResponse(detailWithHistory);
   }
 
   @Put('details/:id')
@@ -591,6 +623,7 @@ export class PatientOdontogramsController {
             include: {
               piezaDental: true,
               estadoPieza: true,
+              historiales: { orderBy: { fechaRegistro: 'asc' } },
             },
           },
         },

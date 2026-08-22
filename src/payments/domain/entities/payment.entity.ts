@@ -10,6 +10,9 @@ export class PaymentEntity {
   estado = true;
   metodoPagoName?: string;
   usuarioCobradorName?: string;
+  patientId?: number;
+  patientName?: string;
+  patientPhone?: string;
   planServicioId?: number | null;
 
   constructor(partial: Partial<PaymentEntity> = {}) {
