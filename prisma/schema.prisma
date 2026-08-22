@@ -313,8 +313,22 @@ model OdontogramaDetalle {
   superficie             SuperficieDental?        @relation(fields: [superficieId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   estadoPieza            EstadoPiezaDental        @relation(fields: [estadoPiezaId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   planServicios          PlanTratamientoServicio[]
+  historiales             OdontogramaDetalleHistorial[]
 
   @@map("odontograma_detalles")
+}
+
+model OdontogramaDetalleHistorial {
+  id                   Int                @id @default(autoincrement())
+  odontogramaDetalleId Int                @map("odontograma_detalle_id")
+  condicion            String             @db.VarChar(100)
+  superficie           String?            @db.VarChar(100)
+  observacion          String?            @db.Text
+  fechaRegistro        DateTime           @default(now()) @map("fecha_registro")
+  detalle              OdontogramaDetalle @relation(fields: [odontogramaDetalleId], references: [id], onDelete: Cascade)
+
+  @@index([odontogramaDetalleId, fechaRegistro])
+  @@map("odontograma_detalle_historiales")
 }
 
 model PlanTratamiento {

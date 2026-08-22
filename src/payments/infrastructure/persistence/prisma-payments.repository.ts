@@ -15,7 +15,7 @@ type PaymentWithRelations = Prisma.PagoGetPayload<{
   include: {
     metodoPago: true;
     usuarioCobrador: true;
-    cita: true;
+    cita: { include: { paciente: true } };
   };
 }>;
 
@@ -46,7 +46,7 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
         orderBy: { fechaPago: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
-        include: { metodoPago: true, usuarioCobrador: true, cita: true },
+        include: { metodoPago: true, usuarioCobrador: true, cita: { include: { paciente: true } } },
       }),
       this.prisma.pago.count({ where }),
       this.prisma.pago.findMany({
@@ -127,7 +127,7 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
   async findById(id: number): Promise<PaymentEntity | null> {
     const payment = await this.prisma.pago.findUnique({
       where: { id },
-      include: { metodoPago: true, usuarioCobrador: true, cita: true },
+      include: { metodoPago: true, usuarioCobrador: true, cita: { include: { paciente: true } } },
     });
 
     return payment ? this.toEntity(payment) : null;
@@ -152,7 +152,7 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
         observacion: payment.observacion ?? null,
         fechaPago: payment.fechaPago ? new Date(payment.fechaPago) : new Date(),
       },
-      include: { metodoPago: true, usuarioCobrador: true, cita: true },
+      include: { metodoPago: true, usuarioCobrador: true, cita: { include: { paciente: true } } },
     });
 
     return this.toEntity(created);
@@ -173,7 +173,7 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
         observacion: payment.observacion,
         fechaPago: payment.fechaPago ? new Date(payment.fechaPago) : undefined,
       },
-      include: { metodoPago: true, usuarioCobrador: true, cita: true },
+      include: { metodoPago: true, usuarioCobrador: true, cita: { include: { paciente: true } } },
     });
 
     return this.toEntity(updated);
@@ -183,7 +183,7 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
     const deleted = await this.prisma.pago.update({
       where: { id },
       data: { estado: false },
-      include: { metodoPago: true, usuarioCobrador: true, cita: true },
+      include: { metodoPago: true, usuarioCobrador: true, cita: { include: { paciente: true } } },
     });
 
     return this.toEntity(deleted);
@@ -202,6 +202,11 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
       estado: payment.estado,
       metodoPagoName: payment.metodoPago.nombreMetodo,
       usuarioCobradorName: payment.usuarioCobrador.nombreCompleto,
+      patientId: payment.cita?.pacienteId,
+      patientName: payment.cita?.paciente
+        ? `${payment.cita.paciente.nombres} ${payment.cita.paciente.apellidos}`.trim()
+        : undefined,
+      patientPhone: payment.cita?.paciente?.telefonoWhatsapp ?? undefined,
       planServicioId: payment.cita?.planServicioId ?? null,
     });
   }

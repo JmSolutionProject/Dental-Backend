@@ -35,6 +35,9 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
     process.env.WHATSAPP_ENABLED === 'true' && !process.env.VERCEL;
   private socket: WASocket | null = null;
   private reconnecting = false;
+  private startPromise: Promise<void> | null = null;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private destroying = false;
   private sessionRestored = false;
   private latestQr: string | null = null;
   private lastError: string | null = null;
@@ -58,10 +61,33 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
     await this.startSocket();
   }
 
-  private async startSocket(): Promise<void> {
+  private startSocket(): Promise<void> {
+    if (this.destroying) return Promise.resolve();
+    if (this.startPromise) return this.startPromise;
+
+    this.startPromise = this.initializeSocket().finally(() => {
+      this.startPromise = null;
+    });
+
+    return this.startPromise;
+  }
+
+  private async initializeSocket(): Promise<void> {
     try {
       this.status = 'initializing';
       this.lastError = null;
+
+      const previousSocket = this.socket;
+      this.socket = null;
+      if (previousSocket) {
+        try {
+          await previousSocket.end(undefined);
+        } catch (error) {
+          this.logger.warn(
+            `No se pudo cerrar el socket anterior: ${this.getErrorMessage(error)}`,
+          );
+        }
+      }
 
       const sessionPath = this.getSessionPath();
       if (!this.sessionRestored) {
@@ -72,21 +98,25 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
       const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
       const { version } = await fetchLatestBaileysVersion();
 
-      this.socket = makeWASocket({
+      const socket = makeWASocket({
         auth: state,
         version,
         browser: Browsers.ubuntu(process.env.WHATSAPP_CLIENT_ID ?? 'Dental Clinic'),
         markOnlineOnConnect: false,
         syncFullHistory: false,
       });
+      this.socket = socket;
 
-      this.socket.ev.on('creds.update', () => {
+      socket.ev.on('creds.update', () => {
         void (async () => {
           await saveCreds();
           await this.persistSessionToR2(sessionPath);
         })();
       });
-      this.socket.ev.on('connection.update', (update) => {
+      socket.ev.on('connection.update', (update) => {
+        // Ignore close events emitted by a socket replaced during reconnect.
+        if (this.socket !== socket) return;
+
         if (update.qr) {
           this.latestQr = update.qr;
           this.lastError = null;
@@ -103,6 +133,7 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
         }
 
         if (update.connection === 'close') {
+          this.socket = null;
           const statusCode = this.getDisconnectStatusCode(
             update.lastDisconnect?.error,
           );
@@ -117,22 +148,32 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
           this.logger.warn(`WhatsApp client disconnected: ${reason}`);
 
           if (statusCode !== DisconnectReason.loggedOut) {
-            void this.scheduleReconnect();
+            this.scheduleReconnect();
           }
         }
       });
     } catch (error) {
+      this.socket = null;
       this.status = 'disconnected';
       this.lastError = this.getErrorMessage(error);
       this.logger.error(
         `Could not initialize WhatsApp client: ${this.lastError}`,
       );
+      if (!this.destroying) this.scheduleReconnect();
     }
   }
 
   async onModuleDestroy(): Promise<void> {
-    if (this.socket) {
-      await this.socket.end(undefined);
+    this.destroying = true;
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+
+    const socket = this.socket;
+    this.socket = null;
+    if (socket) {
+      await socket.end(undefined);
     }
   }
 
@@ -237,19 +278,17 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
-  private async scheduleReconnect(): Promise<void> {
-    if (this.reconnecting) {
+  private scheduleReconnect(): void {
+    if (this.destroying || this.reconnecting || this.reconnectTimer) {
       return;
     }
 
     this.reconnecting = true;
-
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 5000));
-      await this.startSocket();
-    } finally {
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
       this.reconnecting = false;
-    }
+      void this.startSocket();
+    }, 5000);
   }
 
   private getSessionPath(): string {
