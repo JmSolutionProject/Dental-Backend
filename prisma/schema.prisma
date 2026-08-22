@@ -38,8 +38,8 @@ model UsuarioRol {
   id        Int     @id @default(autoincrement())
   usuarioId Int     @map("usuario_id")
   rolId     Int     @map("rol_id")
-  usuario   Usuario @relation(fields: [usuarioId], references: [id])
-  rol       Role    @relation(fields: [rolId], references: [id])
+  usuario   Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  rol       Role    @relation(fields: [rolId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@map("usuario_roles")
 }
@@ -82,7 +82,7 @@ model Servicio {
   nombreServicio String            @map("nombre_servicio") @db.VarChar(150)
   descripcion    String?           @db.Text
   estado         Boolean           @default(true)
-  categoria      CategoriaServicio @relation(fields: [categoriaId], references: [id])
+  categoria      CategoriaServicio @relation(fields: [categoriaId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   precios        ServicioPrecio[]
   citasServicios CitaServicio[]
   planes         PlanTratamientoServicio[]
@@ -98,7 +98,7 @@ model ServicioPrecio {
   fechaInicio DateTime  @map("fecha_inicio") @db.Date
   fechaFin    DateTime? @map("fecha_fin") @db.Date
   estado      Boolean   @default(true)
-  servicio    Servicio  @relation(fields: [servicioId], references: [id])
+  servicio    Servicio  @relation(fields: [servicioId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@map("servicio_precios")
 }
@@ -123,10 +123,10 @@ model Cita {
   observaciones   String?                  @db.Text
   fechaRegistro   DateTime                 @default(now()) @map("fecha_registro")
   recordatorioEnviado Boolean              @default(false) @map("recordatorio_enviado")
-  paciente        Paciente                 @relation(fields: [pacienteId], references: [id])
-  medico          Usuario                  @relation("CitasMedico", fields: [medicoId], references: [id])
-  estadoCita      EstadoCita               @relation(fields: [estadoCitaId], references: [id])
-  planServicio    PlanTratamientoServicio? @relation(fields: [planServicioId], references: [id])
+  paciente        Paciente                 @relation(fields: [pacienteId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  medico          Usuario                  @relation("CitasMedico", fields: [medicoId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  estadoCita      EstadoCita               @relation(fields: [estadoCitaId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  planServicio    PlanTratamientoServicio? @relation(fields: [planServicioId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   servicios       CitaServicio[]
   pagos           Pago[]
   mensajesEnvio   MensajeEnvio[]
@@ -141,8 +141,8 @@ model CitaServicio {
   servicioId Int      @map("servicio_id")
   cantidad   Int      @default(1)
   descuento  Decimal  @default(0.00) @db.Decimal(10, 2)
-  cita       Cita     @relation(fields: [citaId], references: [id])
-  servicio   Servicio @relation(fields: [servicioId], references: [id])
+  cita       Cita     @relation(fields: [citaId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  servicio   Servicio @relation(fields: [servicioId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@map("cita_servicios")
 }
@@ -166,9 +166,9 @@ model Pago {
   observacion       String?    @db.Text
   fechaPago         DateTime   @default(now()) @map("fecha_pago")
   estado            Boolean    @default(true)
-  cita              Cita       @relation(fields: [citaId], references: [id])
-  usuarioCobrador   Usuario    @relation("PagosCobrador", fields: [usuarioCobradorId], references: [id])
-  metodoPago        MetodoPago @relation(fields: [metodoPagoId], references: [id])
+  cita              Cita       @relation(fields: [citaId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  usuarioCobrador   Usuario    @relation("PagosCobrador", fields: [usuarioCobradorId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  metodoPago        MetodoPago @relation(fields: [metodoPagoId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@map("pagos")
 }
@@ -202,10 +202,10 @@ model MensajeEnvio {
   fechaHoraProgramada DateTime           @map("fecha_hora_programada")
   fechaHoraEnvio      DateTime?          @map("fecha_hora_envio")
   errorDetalle        String?            @map("error_detalle") @db.Text
-  plantilla           PlantillaMensaje   @relation(fields: [plantillaId], references: [id])
-  paciente            Paciente           @relation(fields: [pacienteId], references: [id])
-  cita                Cita?              @relation(fields: [citaId], references: [id])
-  estadoEnvio         EstadoEnvioMensaje @relation(fields: [estadoEnvioId], references: [id])
+  plantilla           PlantillaMensaje   @relation(fields: [plantillaId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  paciente            Paciente           @relation(fields: [pacienteId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  cita                Cita?              @relation(fields: [citaId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  estadoEnvio         EstadoEnvioMensaje @relation(fields: [estadoEnvioId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@map("mensajes_envio")
 }
@@ -223,7 +223,7 @@ model CampanaWhatsapp {
   estadoProceso    String            @default("pending") @map("estado_proceso") @db.VarChar(20)
   tipoEnvio        String            @default("custom-message") @map("tipo_envio") @db.VarChar(50)
   estado           Boolean           @default(true)
-  usuarioCreador   Usuario           @relation("CampanasCreadas", fields: [usuarioCreadorId], references: [id])
+  usuarioCreador   Usuario           @relation("CampanasCreadas", fields: [usuarioCreadorId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   pacientes        CampanaPaciente[]
 
   @@map("campanas_whatsapp")
@@ -247,9 +247,9 @@ model CampanaPaciente {
   fechaCreacion      DateTime           @default(now()) @map("fecha_creacion")
   fechaActualizacion DateTime           @updatedAt @map("fecha_actualizacion")
   fechaEnvio         DateTime?          @map("fecha_envio")
-  campana            CampanaWhatsapp    @relation(fields: [campanaId], references: [id])
-  paciente           Paciente           @relation(fields: [pacienteId], references: [id])
-  estadoEnvio        EstadoEnvioMensaje @relation(fields: [estadoEnvioId], references: [id])
+  campana            CampanaWhatsapp    @relation(fields: [campanaId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  paciente           Paciente           @relation(fields: [pacienteId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  estadoEnvio        EstadoEnvioMensaje @relation(fields: [estadoEnvioId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@map("campana_pacientes")
 }
@@ -292,8 +292,8 @@ model Odontograma {
   citaId             Int?                 @map("cita_id")
   fechaRegistro      DateTime             @default(now()) @map("fecha_registro")
   observacionGeneral String?              @map("observacion_general") @db.Text
-  paciente           Paciente             @relation(fields: [pacienteId], references: [id])
-  cita               Cita?                @relation(fields: [citaId], references: [id])
+  paciente           Paciente             @relation(fields: [pacienteId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  cita               Cita?                @relation(fields: [citaId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   detalles           OdontogramaDetalle[]
 
   @@map("odontogramas")
@@ -308,10 +308,10 @@ model OdontogramaDetalle {
   diagnostico            String?                  @db.Text
   tratamientoRecomendado String?                  @map("tratamiento_recomendado") @db.Text
   observacion            String?                  @db.Text
-  odontograma            Odontograma              @relation(fields: [odontogramaId], references: [id])
-  piezaDental            PiezaDental              @relation(fields: [piezaDentalId], references: [id])
-  superficie             SuperficieDental?        @relation(fields: [superficieId], references: [id])
-  estadoPieza            EstadoPiezaDental        @relation(fields: [estadoPiezaId], references: [id])
+  odontograma            Odontograma              @relation(fields: [odontogramaId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  piezaDental            PiezaDental              @relation(fields: [piezaDentalId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  superficie             SuperficieDental?        @relation(fields: [superficieId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  estadoPieza            EstadoPiezaDental        @relation(fields: [estadoPiezaId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   planServicios          PlanTratamientoServicio[]
   historiales             OdontogramaDetalleHistorial[]
 
@@ -338,8 +338,8 @@ model PlanTratamiento {
   estado        String                     @default("pendiente") @db.VarChar(20)
   fechaCreacion DateTime                   @default(now()) @map("fecha_creacion")
   observaciones String?                    @db.Text
-  paciente      Paciente                   @relation(fields: [pacienteId], references: [id])
-  medico        Usuario                    @relation(fields: [medicoId], references: [id])
+  paciente      Paciente                   @relation(fields: [pacienteId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  medico        Usuario                    @relation(fields: [medicoId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   servicios     PlanTratamientoServicio[]
 
   @@map("planes_tratamiento")
@@ -353,9 +353,9 @@ model PlanTratamientoServicio {
   descuento            Decimal             @default(0.00) @db.Decimal(10, 2)
   ejecutado            Boolean             @default(false)
   odontogramaDetalleId Int?                @map("odontograma_detalle_id")
-  plan                 PlanTratamiento     @relation(fields: [planId], references: [id])
-  servicio             Servicio            @relation(fields: [servicioId], references: [id])
-  odontogramaDetalle   OdontogramaDetalle? @relation(fields: [odontogramaDetalleId], references: [id])
+  plan                 PlanTratamiento     @relation(fields: [planId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  servicio             Servicio            @relation(fields: [servicioId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  odontogramaDetalle   OdontogramaDetalle? @relation(fields: [odontogramaDetalleId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   citas                Cita[]
 
   @@map("plan_tratamiento_servicios")
@@ -371,8 +371,8 @@ model Adjunto {
   mimeType      String    @map("mime_type") @db.VarChar(100)
   size          Int
   fechaRegistro DateTime  @default(now()) @map("fecha_registro")
-  paciente      Paciente  @relation(fields: [pacienteId], references: [id])
-  servicio      Servicio? @relation(fields: [servicioId], references: [id])
+  paciente      Paciente  @relation(fields: [pacienteId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  servicio      Servicio? @relation(fields: [servicioId], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
   @@map("adjuntos")
 }
